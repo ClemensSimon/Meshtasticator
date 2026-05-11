@@ -79,13 +79,14 @@ td:first-child{color:#94a3b8}td:last-child{color:#22d3ee;text-align:right;font-w
 let parsed = {gens:{}, bestPerGen:[], allScores:[], bestEver:null, bestScore:-999, totalEvals:0, improvements:0, currentGen:0};
 
 function parseLine(line) {
-  // Parse: [HH:MM:SS]   #N: worst=X [scenario:score/txPct/reachPct | ...]
-  const m = line.match(/#(\d+): worst=([-\d.]+) \[(.+)\]/);
+  // Parse: [HH:MM:SS]   # N: worst=   X [scenario:score/txPct/reachPct | ...]
+  // Handles both old format (#N:) and new format (# N:) with padding
+  const m = line.match(/#\s*(\d+):\s*worst=\s*([-\d.]+)\s*\[(.+)\]/);
   if (!m) return null;
   const ind = parseInt(m[1]);
   const worst = parseFloat(m[2]);
   const details = m[3].split(' | ').map(s => {
-    const dm = s.match(/(\w+):([-\d.]+)\/([-+\d.]+)%\/([\d.]+)%/);
+    const dm = s.trim().match(/(\w+):([-\d.]+)\/([-+\d.]+)%\/([\d.]+)%/);
     if (!dm) return null;
     return {name:dm[1], score:parseFloat(dm[2]), tx:parseFloat(dm[3]), reach:parseFloat(dm[4])};
   }).filter(Boolean);
