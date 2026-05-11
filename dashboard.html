@@ -11,6 +11,9 @@ body{background:#0a0e1a;color:#e2e8f0;font-family:'JetBrains Mono',monospace;pad
 .hdr h1{font-size:1.2rem;color:#22d3ee}
 .hdr .st{padding:0.2rem 0.6rem;border-radius:4px;font-size:0.7rem}
 .st.run{background:#065f46;color:#4ade80}.st.stop{background:#7f1d1d;color:#fca5a5}
+.btn-stop{background:#991b1b;color:#fca5a5;border:1px solid #f87171;border-radius:4px;padding:0.3rem 0.8rem;font-family:inherit;font-size:0.7rem;cursor:pointer;margin-left:0.5rem}
+.btn-stop:hover{background:#f87171;color:#0a0e1a}
+.btn-stop.disabled{opacity:0.3;pointer-events:none}
 .grid{display:grid;gap:0.8rem;margin-bottom:0.8rem}
 .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
 .card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:0.8rem}
@@ -35,7 +38,11 @@ td:first-child{color:#94a3b8}td:last-child{color:#22d3ee;text-align:right;font-w
 <body>
 <div class="hdr">
   <h1>MeshRoute System V6 — GA Evolution</h1>
-  <div><span class="st" id="status">LOADING</span> <span style="font-size:0.6rem;color:#64748b" id="timer">refresh: 5s</span></div>
+  <div>
+    <span class="st" id="status">LOADING</span>
+    <button class="btn-stop" id="btn-stop" onclick="stopGA()">STOP GA</button>
+    <span style="font-size:0.6rem;color:#64748b" id="timer">refresh: 5s</span>
+  </div>
 </div>
 
 <div class="grid g4">
@@ -286,6 +293,14 @@ function drawScatter(id, data) {
   });
   c.fillStyle='#64748b';c.font='9px monospace';c.fillText('Gen',P.l,H-3);
   c.fillText('Score',2,P.t+10);
+}
+
+async function stopGA() {
+  try {
+    await fetch('/stop-ga', {method:'POST'});
+    document.getElementById('btn-stop').textContent = 'STOPPING...';
+    document.getElementById('btn-stop').className = 'btn-stop disabled';
+  } catch(e) { alert('Stop failed: ' + e); }
 }
 
 refresh();

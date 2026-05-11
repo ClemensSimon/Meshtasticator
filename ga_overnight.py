@@ -136,26 +136,65 @@ def main():
 
     log(f"=== GA MARATHON: {GENS} gens, pop={POP}, {len(SCENARIOS)} scenarios, REACH-HEAVY ===")
 
-    pop = [random_genome() for _ in range(POP)]
-    # Seed known good genomes
-    pop[0] = {'route_expiry_ms': 30000, 'neighbor_expiry_ms': 160000, 'echo_timeout_ms': 3300,
-              'echo_min_score': 0.48, 'echo_min_observations': 9, 'mpr_recompute_interval': 117,
-              'relay_redundancy_threshold': 4, 'gossip_probability': 0.26, 'defer_slot_multiplier': 1.1,
-              'rssi_margin_suppress': 40, 'power_control_margin': 7, 'density_threshold': 6}
-    pop[1] = {'route_expiry_ms': 60000, 'neighbor_expiry_ms': 120000, 'echo_timeout_ms': 5000,
-              'echo_min_score': 0.3, 'echo_min_observations': 7, 'mpr_recompute_interval': 80,
-              'relay_redundancy_threshold': 5, 'gossip_probability': 0.4, 'defer_slot_multiplier': 0.8,
-              'rssi_margin_suppress': 15, 'power_control_margin': 5, 'density_threshold': 8}
-    pop[2] = {'route_expiry_ms': 300000, 'neighbor_expiry_ms': 300000, 'echo_timeout_ms': 8000,
-              'echo_min_score': 0.1, 'echo_min_observations': 10, 'mpr_recompute_interval': 150,
-              'relay_redundancy_threshold': 5, 'gossip_probability': 0.35, 'defer_slot_multiplier': 2.0,
-              'rssi_margin_suppress': 10, 'power_control_margin': 5, 'density_threshold': 10}
-
     best_ever = None
     best_score = -999
     all_results = []
+    start_gen = 0
 
-    for gen in range(GENS):
+    # Try to recover from checkpoint
+    if os.path.exists('ga_checkpoint.json'):
+        try:
+            cp = json.load(open('ga_checkpoint.json'))
+            start_gen = cp.get('generation', 0)
+            best_score = cp.get('best_score', -999)
+            if cp.get('best_genome'):
+                best_ever = (cp['best_genome'], best_score, cp.get('best_details', []))
+            pop_data = cp.get('population', [])
+            if pop_data:
+                pop = [p['genome'] for p in pop_data[:POP]]
+                while len(pop) < POP:
+                    pop.append(random_genome())
+                log(f"  RECOVERED from checkpoint: gen {start_gen}, best={best_score:.0f}, pop={len(pop)}")
+            else:
+                pop = None
+        except:
+            pop = None
+    else:
+        pop = None
+
+    if pop is None:
+        pop = [random_genome() for _ in range(POP)]
+        # Seed known good genomes
+        pop[0] = {'route_expiry_ms': 30000, 'neighbor_expiry_ms': 160000, 'echo_timeout_ms': 3300,
+                  'echo_min_score': 0.48, 'echo_min_observations': 9, 'mpr_recompute_interval': 117,
+                  'relay_redundancy_threshold': 4, 'gossip_probability': 0.26, 'defer_slot_multiplier': 1.1,
+                  'rssi_margin_suppress': 40, 'power_control_margin': 7, 'density_threshold': 6}
+        pop[1] = {'route_expiry_ms': 60000, 'neighbor_expiry_ms': 120000, 'echo_timeout_ms': 5000,
+                  'echo_min_score': 0.3, 'echo_min_observations': 7, 'mpr_recompute_interval': 80,
+                  'relay_redundancy_threshold': 5, 'gossip_probability': 0.4, 'defer_slot_multiplier': 0.8,
+                  'rssi_margin_suppress': 15, 'power_control_margin': 5, 'density_threshold': 8}
+        pop[2] = {'route_expiry_ms': 300000, 'neighbor_expiry_ms': 300000, 'echo_timeout_ms': 8000,
+                  'echo_min_score': 0.1, 'echo_min_observations': 10, 'mpr_recompute_interval': 150,
+                  'relay_redundancy_threshold': 5, 'gossip_probability': 0.35, 'defer_slot_multiplier': 2.0,
+                  'rssi_margin_suppress': 10, 'power_control_margin': 5, 'density_threshold': 10}
+
+    # Load previous results if they exist
+    if os.path.exists('ga_overnight_all.json'):
+        try:
+            all_results = json.load(open('ga_overnight_all.json'))
+            log(f"  Loaded {len(all_results)} previous results")
+        except:
+            pass
+
+    # Remove old stop flag
+    try: os.remove('ga_stop.flag')
+    except: pass
+
+    for gen in range(start_gen, GENS):
+        # Check stop flag (created by dashboard stop button)
+        if os.path.exists('ga_stop.flag'):
+            log(f"\n*** STOPPED by user (ga_stop.flag) at gen {gen+1} ***")
+            break
         log(f"\n--- Gen {gen+1}/{GENS} ---")
         scored = []
 
@@ -185,11 +224,22 @@ def main():
             all_results.append({'gen': gen+1, 'ind': i+1, 'worst': worst,
                                 'details': details, 'genome': {k: genome[k] for k in ['gossip_probability', 'relay_redundancy_threshold', 'density_threshold', 'route_expiry_ms', 'defer_slot_multiplier']}})
 
-        # Save all results
+        # Save results — checkpoint every generation so nothing is lost on crash
         try:
             json.dump(all_results, open('ga_overnight_all.json', 'w'), indent=1)
-        except:
-            pass
+            # Also save checkpoint with full population state for recovery
+            checkpoint = {
+                'generation': gen + 1,
+                'best_score': best_score,
+                'best_genome': best_ever[0] if best_ever else None,
+                'best_details': best_ever[2] if best_ever else None,
+                'population': [{'genome': g, 'score': s} for g, s, _ in scored],
+                'total_evals': len(all_results),
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+            json.dump(checkpoint, open('ga_checkpoint.json', 'w'), indent=2)
+        except Exception as e:
+            log(f"  Checkpoint save error: {e}")
 
         # Selection
         scored.sort(key=lambda x: -x[1])
