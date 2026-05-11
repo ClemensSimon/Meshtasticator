@@ -176,6 +176,11 @@ class MeshNode:
             self.v6_echo_pending = {}
             self.v6_echo_score = 0.5
             self.v6_echo_history = []
+            # Container Aggregation: collect neighbor positions, send as one compressed packet
+            self.v6_aggregation_buffer = {}  # {origNodeId: {seq, time}} — positions waiting to be aggregated
+            self.v6_aggregation_timer_active = False
+            self.v6_aggregated_packets_sent = 0
+            self.v6_aggregated_positions_saved = 0  # TX that were avoided by aggregation
             # Network Coding: buffer of packets waiting to be XOR-combined
             self.v6_coding_buffer = []  # list of (packet, rssi, arrival_time)
             self.v6_coded_packets_sent = 0  # tracking: how many coded (2-for-1) TXs
@@ -550,9 +555,17 @@ class MeshNode:
                         if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
                             self.v6_compute_mpr()
 
-                        # Forward decision with deferred rebroadcast
+                        # Forward decision: aggregate broadcasts, forward DMs directly
                         if not self.is_client_mute:
-                            self.env.process(self.v6_deferred_forward(p, rssi))
+                            if p.destId == NODENUM_BROADCAST and len(self.v6_neighbors) >= 4:
+                                # Broadcast in dense area: aggregate instead of individual relay
+                                self.v6_aggregation_buffer[p.origTxNodeId] = {'seq': p.seq, 'time': self.env.now, 'packet': p, 'rssi': rssi}
+                                if not self.v6_aggregation_timer_active:
+                                    self.v6_aggregation_timer_active = True
+                                    self.env.process(self.v6_flush_aggregation())
+                            else:
+                                # DM or sparse network: forward individually
+                                self.env.process(self.v6_deferred_forward(p, rssi))
                 else:
                     self.droppedByDelay += 1
 
@@ -714,6 +727,66 @@ class MeshNode:
             del self.v6_watchdog_pending[seq]
             if expected is not None:
                 self.v6_update_reliability(expected, False)
+
+    def v6_flush_aggregation(self):
+        """Wait for aggregation window, then send all buffered positions as one container.
+
+        Container structure (simulated):
+        - Header: 16 bytes (Meshtastic)
+        - Cluster center: 8 bytes (own lat/lon as reference)
+        - Per neighbor: 3 bytes (delta lat 12bit + delta lon 12bit)
+        - Fountain redundancy: +30% overhead (Reed-Solomon style)
+
+        One container TX replaces N individual broadcast relays.
+        """
+        # Wait for aggregation window: 5 seconds to collect multiple broadcasts
+        # At 30 nodes x 30s period = ~1 msg/s, a 5s window collects ~5 positions
+        yield self.env.timeout(5000)
+        self.v6_aggregation_timer_active = False
+
+        buffered = dict(self.v6_aggregation_buffer)
+        self.v6_aggregation_buffer.clear()
+
+        if not buffered:
+            return
+
+        n_positions = len(buffered)
+        # Delta-compressed container size: header(16) + center(8) + n*delta(3) + fountain_redundancy(30%)
+        container_bytes = int((16 + 8 + n_positions * 3) * 1.3)  # 30% fountain overhead
+        max_lora_payload = 237  # max LoRa payload bytes
+
+        if container_bytes <= max_lora_payload:
+            # Fits in one packet — send as single container
+            # Pick the first buffered packet as template
+            template = list(buffered.values())[0]['packet']
+            pContainer = MeshPacket(self.conf, self.nodes, self.nodeid, NODENUM_BROADCAST,
+                                    self.nodeid, container_bytes, template.seq, self.env.now,
+                                    False, False, None, self.env.now,
+                                    implicit_header=True, preamble_symbols=8)
+            pContainer.hopLimit = max(0, template.hopLimit - 1)
+            self.packets.append(pContainer)
+            self.env.process(self.transmit(pContainer))
+            self.v6_aggregated_packets_sent += 1
+            self.v6_aggregated_positions_saved += max(0, n_positions - 1)  # saved N-1 TX
+            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-CONTAINER: {n_positions} positions in {container_bytes}B (saved {n_positions-1} TX)")
+        else:
+            # Too large for one packet — split into fountain fragments
+            n_fragments = (container_bytes + max_lora_payload - 1) // max_lora_payload
+            # Fountain: send N+1 fragments (any N sufficient to reconstruct)
+            for frag_i in range(n_fragments + 1):
+                frag_size = min(max_lora_payload, container_bytes - frag_i * max_lora_payload) if frag_i < n_fragments else max_lora_payload // 2
+                template = list(buffered.values())[0]['packet']
+                pFrag = MeshPacket(self.conf, self.nodes, self.nodeid, NODENUM_BROADCAST,
+                                   self.nodeid, max(10, frag_size), template.seq + frag_i, self.env.now,
+                                   False, False, None, self.env.now,
+                                   implicit_header=True, preamble_symbols=8)
+                pFrag.hopLimit = max(0, template.hopLimit - 1)
+                self.packets.append(pFrag)
+                self.env.process(self.transmit(pFrag))
+            self.v6_aggregated_packets_sent += n_fragments + 1
+            saved = max(0, n_positions - n_fragments - 1)
+            self.v6_aggregated_positions_saved += saved
+            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-CONTAINER-FRAGMENTED: {n_positions} positions -> {n_fragments+1} fragments (saved {saved} TX)")
 
     def v6_coding_flush(self, seq, timeout_ms, txpow, sf_opt=None, implicit_header=False, preamble_symbols=None):
         """If a buffered packet hasn't found a coding partner, send it solo."""
