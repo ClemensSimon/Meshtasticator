@@ -1,0 +1,1 @@
+{"nr_nodes": 30, "router": "SYSTEM_V6", "hop_limit": 3, "tx": 2303, "collisions": 2263, "useful": 3507, "reach": 0.2617554858934169, "dropped": 2964, "msgs": 462, "elapsed": 5.6, "tx_per_window": [907, 212, 202, 234, 225, 207, 206, 110]}

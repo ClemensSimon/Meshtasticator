@@ -1,0 +1,20 @@
+[50n/7h/SYSTEM_V6] Starting (sim=1800s, period=30s)...
+[50n/7h/SYSTEM_V6] Sim running...
+[ERROR] ['v6_run_one.py', '50', 'SYSTEM_V6', '7', '1800', '30', 'ga_results/best_genome.json']: list.remove(x): x not in list
+Traceback (most recent call last):
+  File "C:\Users\simon\Meshtasticator\lib\node.py", line 409, in transmit
+    self.packets.remove(packet)
+ValueError: list.remove(x): x not in list
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\simon\Meshtasticator\v6_run_one.py", line 47, in <module>
+    sim.run_simulation()
+  File "C:\Users\simon\Meshtasticator\lib\discrete_event_sim.py", line 164, in run_simulation
+    self.env.run(until=self.conf.SIMTIME)
+  File "C:\Python312\Lib\site-packages\simpy\core.py", line 246, in run
+    self.step()
+  File "C:\Python312\Lib\site-packages\simpy\core.py", line 204, in step
+    raise exc
+ValueError: list.remove(x): x not in list

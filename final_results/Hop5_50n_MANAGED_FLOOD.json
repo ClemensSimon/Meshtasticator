@@ -1,0 +1,1 @@
+{"nr_nodes": 50, "router": "MANAGED_FLOOD", "hop_limit": 5, "tx": 11694, "collisions": 18136, "useful": 14305, "reach": 0.2263091283024838, "dropped": 19998, "msgs": 1290, "elapsed": 143.5, "tx_per_window": [6004, 388, 407, 367, 410, 401, 403, 431, 438, 424, 388, 413, 409, 391, 420, 0]}
