@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 """GA marathon: reach-focused, high mutation, robust error handling."""
 import json, time, os, sys, random, copy, uuid
-
-# Direct imports — no subprocesses needed, no windows opened
-from lib.config import Config
-from lib.discrete_event_sim import DiscreteEventSim
-from lib.node import default_generate_node_list
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 GENOME_SPEC = [
     ('route_expiry_ms',       30000,  600000, 'int'),
@@ -58,9 +54,14 @@ def crossover(a, b):
         child[k] = a[k] if random.random() < 0.5 else b[k]
     return child
 
-def run_one(nr_nodes, router_str, hops, simtime, period, genome=None):
-    """Run simulation in-process. No subprocess, no windows."""
+def run_one(args):
+    """Run simulation in a worker process. No windows."""
+    nr_nodes, router_str, hops, simtime, period, genome = args
     try:
+        from lib.config import Config
+        from lib.discrete_event_sim import DiscreteEventSim
+        from lib.node import default_generate_node_list
+
         conf = Config()
         conf.NR_NODES = nr_nodes
         conf.SELECTED_ROUTER_TYPE = Config.ROUTER_TYPE(router_str)
@@ -83,17 +84,16 @@ def run_one(nr_nodes, router_str, hops, simtime, period, genome=None):
         msgs = sim.mutated_state.messageSeq.peek()
         reach = useful / max(msgs * (nr_nodes - 1), 1)
         return {'tx': tx, 'collisions': col, 'reach': reach, 'msgs': msgs}
-    except Exception as e:
-        log(f"    run_one ERROR ({nr_nodes}n/{router_str}): {e}")
+    except:
         return None
 
-def evaluate(genome):
-    """Multi-scenario fitness. All in-process, no subprocesses, no windows."""
+def evaluate_wrapper(genome):
+    """Runs in a worker process — evaluates one genome across all scenarios."""
     scores = []
     for name, nodes, hops, simtime, period in SCENARIOS:
         try:
-            mf = run_one(nodes, 'MANAGED_FLOOD', hops, simtime, period)
-            v6 = run_one(nodes, 'SYSTEM_V6', hops, simtime, period, genome)
+            mf = run_one((nodes, 'MANAGED_FLOOD', hops, simtime, period, None))
+            v6 = run_one((nodes, 'SYSTEM_V6', hops, simtime, period, genome))
 
             if not mf or not v6 or mf.get('tx', 0) == 0 or mf.get('reach', 0) == 0:
                 scores.append((name, -100, 0, 0, 0))
@@ -190,17 +190,26 @@ def main():
     try: os.remove('ga_stop.flag')
     except: pass
 
+    # Process pool for parallel simulation (uses all CPU cores, no windows)
+    pool = ProcessPoolExecutor(max_workers=min(6, os.cpu_count() or 4))
+    log(f"  Process pool: {pool._max_workers} workers on {os.cpu_count()} cores")
+
     for gen in range(start_gen, GENS):
-        # Check stop flag (created by dashboard stop button)
         if os.path.exists('ga_stop.flag'):
             log(f"\n*** STOPPED by user (ga_stop.flag) at gen {gen+1} ***")
             break
         log(f"\n--- Gen {gen+1}/{GENS} ---")
         scored = []
 
+        # Evaluate ALL individuals in parallel
+        # Each individual evaluates 6 sims (3 scenarios x 2 routers) via the pool
+        gen_futures = {}
         for i, genome in enumerate(pop):
+            gen_futures[i] = pool.submit(evaluate_wrapper, genome)
+
+        for i in range(len(pop)):
             try:
-                worst, details = evaluate(genome)
+                worst, details = gen_futures[i].result(timeout=600)
             except Exception as e:
                 log(f"  #{i+1}: EXCEPTION: {e}")
                 worst, details = -100, []
@@ -273,6 +282,9 @@ def main():
                 log(f"  {name}: score={score:.0f} TX={tx:+.1f}% V6reach={reach:.1f}% MFreach={mf_reach:.1f}%")
     log(f"{'='*70}")
     json.dump(all_results, open('ga_overnight_all.json', 'w'), indent=1)
+    pool.shutdown(wait=False)
 
 if __name__ == '__main__':
+    import multiprocessing
+    multiprocessing.freeze_support()  # needed on Windows
     main()
