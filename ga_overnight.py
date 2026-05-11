@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """GA marathon: reach-focused, high mutation, robust error handling."""
-import subprocess, json, time, os, sys, random, copy, traceback, uuid
+import json, time, os, sys, random, copy, uuid
 
-PYTHON = sys.executable
-
-# Windows: hide subprocess windows
-_CREATE_NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
-_STARTUPINFO = None
-if sys.platform == 'win32':
-    _STARTUPINFO = subprocess.STARTUPINFO()
-    _STARTUPINFO.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    _STARTUPINFO.wShowWindow = 0  # SW_HIDE
+# Direct imports — no subprocesses needed, no windows opened
+from lib.config import Config
+from lib.discrete_event_sim import DiscreteEventSim
+from lib.node import default_generate_node_list
 
 GENOME_SPEC = [
     ('route_expiry_ms',       30000,  600000, 'int'),
@@ -29,7 +24,7 @@ GENOME_SPEC = [
 
 SCENARIOS = [
     ('standard', 30, 3, 600, 30),
-    ('dense',    40, 3, 600, 30),
+    ('dense',    35, 3, 600, 30),
     ('sparse',   10, 5, 600, 30),
 ]
 
@@ -63,41 +58,42 @@ def crossover(a, b):
         child[k] = a[k] if random.random() < 0.5 else b[k]
     return child
 
-def run_one(nodes, router, hops, simtime, period, genome_file=None):
-    cmd = [PYTHON, 'v6_run_one.py', str(nodes), router, str(hops), str(simtime), str(period)]
-    if genome_file and router == 'SYSTEM_V6':
-        cmd.append(genome_file)
+def run_one(nr_nodes, router_str, hops, simtime, period, genome=None):
+    """Run simulation in-process. No subprocess, no windows."""
     try:
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
-                             creationflags=_CREATE_NO_WINDOW, startupinfo=_STARTUPINFO)
-        if out.returncode == 0 and out.stdout.strip():
-            lines = out.stdout.strip().split('\n')
-            for line in reversed(lines):
-                line = line.strip()
-                if line.startswith('{'):
-                    return json.loads(line)
-    except subprocess.TimeoutExpired:
-        pass
+        conf = Config()
+        conf.NR_NODES = nr_nodes
+        conf.SELECTED_ROUTER_TYPE = Config.ROUTER_TYPE(router_str)
+        conf.SIMTIME = simtime * 1000
+        conf.PERIOD = period * 1000
+        conf.hopLimit = hops
+        if genome and router_str == 'SYSTEM_V6':
+            conf.V6_PARAMS = genome
+        conf.update_router_dependencies()
+
+        node_configs = default_generate_node_list(conf)
+        sim = DiscreteEventSim(conf, node_configs)
+        sim.run_simulation()
+
+        pkts = sim.mutated_state.packets
+        nodes = sim.mutated_state.nodes
+        tx = len(pkts)
+        col = sum(sum(p.collidedAtN) for p in pkts)
+        useful = sum(n.usefulPackets for n in nodes)
+        msgs = sim.mutated_state.messageSeq.peek()
+        reach = useful / max(msgs * (nr_nodes - 1), 1)
+        return {'tx': tx, 'collisions': col, 'reach': reach, 'msgs': msgs}
     except Exception as e:
-        log(f"    run_one ERROR: {e}")
-    return None
+        log(f"    run_one ERROR ({nr_nodes}n/{router_str}): {e}")
+        return None
 
 def evaluate(genome):
-    """Multi-scenario fitness with robust error handling."""
-    # Unique genome file per evaluation
-    gf = os.path.join('ga_tmp', f'genome_{uuid.uuid4().hex[:8]}.json')
-    os.makedirs('ga_tmp', exist_ok=True)
-    try:
-        with open(gf, 'w') as f:
-            json.dump(genome, f)
-    except:
-        return -999, []
-
+    """Multi-scenario fitness. All in-process, no subprocesses, no windows."""
     scores = []
     for name, nodes, hops, simtime, period in SCENARIOS:
         try:
             mf = run_one(nodes, 'MANAGED_FLOOD', hops, simtime, period)
-            v6 = run_one(nodes, 'SYSTEM_V6', hops, simtime, period, gf)
+            v6 = run_one(nodes, 'SYSTEM_V6', hops, simtime, period, genome)
 
             if not mf or not v6 or mf.get('tx', 0) == 0 or mf.get('reach', 0) == 0:
                 scores.append((name, -100, 0, 0, 0))
@@ -118,11 +114,6 @@ def evaluate(genome):
         except Exception as e:
             log(f"    evaluate ERROR ({name}): {e}")
             scores.append((name, -100, 0, 0, 0))
-
-    try:
-        os.remove(gf)
-    except:
-        pass
 
     if not scores:
         return -999, []
