@@ -343,12 +343,37 @@ class MeshNode:
 
     def generate_message(self):
         while True:
-            # Returns -1 if we don't make it before the sim ends
             nextGen = self.get_next_time(self.period)
-            # do not generate a message near the end of the simulation (otherwise flooding cannot finish in time)
             if nextGen >= 0:
                 yield self.env.timeout(nextGen)
 
+                # V6 Pull-Based: cluster heads aggregate, members stay silent
+                if (self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6
+                        and hasattr(self, 'v6_is_cluster_head')
+                        and self.conf.NR_NODES >= 15):
+                    if self.v6_is_cluster_head and self.v6_cluster_members:
+                        # I'm a cluster head: send ONE aggregated packet for all members
+                        # Size: header(16) + center(8) + N*delta(3) + 30% fountain = small
+                        n_members = len(self.v6_cluster_members) + 1  # +1 for myself
+                        container_bytes = min(237, int((16 + 8 + n_members * 3) * 1.3))
+                        messageSeq = self.messageSeq.get()
+                        self.messages.append(MeshMessage(self.nodeid, NODENUM_BROADCAST, self.env.now, messageSeq))
+                        p = MeshPacket(self.conf, self.nodes, self.nodeid, NODENUM_BROADCAST,
+                                       self.nodeid, container_bytes, messageSeq, self.env.now,
+                                       False, False, None, self.env.now,
+                                       implicit_header=True, preamble_symbols=8)
+                        self.packets.append(p)
+                        self.env.process(self.transmit(p))
+                        self.nrPacketsSent += 1
+                        # Count: this 1 TX replaces N individual broadcasts
+                        self.v6_aggregated_packets_sent += 1
+                        self.v6_aggregated_positions_saved += max(0, n_members - 1)
+                        continue  # skip normal send
+                    elif self.v6_my_cluster_head is not None and self.v6_my_cluster_head != self.nodeid:
+                        # I have a cluster head — they aggregate for me. Stay silent.
+                        continue  # skip — cluster head handles it
+
+                # Default: normal message generation (Legacy or V6 without cluster)
                 if self.conf.DMs:
                     destId = self.nodeRng.choice([i for i in range(0, len(self.nodes)) if i is not self.nodeid])
                 else:
@@ -942,14 +967,10 @@ class MeshNode:
             self.v6_cfg['route_expiry_ms'] = 30000
 
     def v6_elect_cluster_head(self):
-        """LEACH-style cluster head election based on neighbor count + reliability.
-
-        Nodes with many neighbors and high reliability are better cluster heads.
-        Each node computes its own score; highest-scoring neighbor becomes the head.
-        """
-        # My score: neighbors * avg_reliability
+        """LEACH-style cluster head election based on neighbor count + reliability."""
         my_nb_count = len(self.v6_neighbors)
-        if my_nb_count < 3:
+        # Only form clusters in dense enough networks (8+ neighbors)
+        if my_nb_count < 8:
             self.v6_is_cluster_head = False
             return
 
