@@ -176,6 +176,16 @@ class MeshNode:
             self.v6_echo_pending = {}
             self.v6_echo_score = 0.5
             self.v6_echo_history = []
+            # Hierarchical Clustering: auto-elect cluster heads for telemetry aggregation
+            self.v6_is_cluster_head = False
+            self.v6_my_cluster_head = None  # nodeId of my cluster head
+            self.v6_cluster_members = set()  # if I'm a cluster head: who reports to me
+            self.v6_cluster_head_score = 0.0  # eligibility score
+            # TDMA: GPS-synchronized time slots
+            self.v6_tdma_slot = -1  # my assigned slot (-1 = not assigned)
+            self.v6_tdma_slot_count = 0  # total slots in frame
+            # Multi-path: parallel routing state
+            self.v6_alt_routes = {}  # {destId: [{nextHop, rssi, sf}]} — alternative paths
             # Container Aggregation: collect neighbor positions, send as one compressed packet
             self.v6_aggregation_buffer = {}  # {origNodeId: {seq, time}} — positions waiting to be aggregated
             self.v6_aggregation_timer_active = False
@@ -528,6 +538,17 @@ class MeshNode:
                             self.v6_echo_history.append((self.env.now, True))
                             self.v6_update_echo_score()
 
+                        # Learn alternative routes for multi-path
+                        if is_trusted and p.origTxNodeId in self.v6_routes:
+                            existing_nh = self.v6_routes[p.origTxNodeId]['nextHop']
+                            if p.txNodeId != existing_nh:
+                                # Different relay = alternative path
+                                if p.origTxNodeId not in self.v6_alt_routes:
+                                    self.v6_alt_routes[p.origTxNodeId] = []
+                                alt_list = self.v6_alt_routes[p.origTxNodeId]
+                                if len(alt_list) < 3 and not any(a['nextHop'] == p.txNodeId for a in alt_list):
+                                    alt_list.append({'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now})
+
                         # Learn routes: only from trusted packets, prefer reliable relays
                         if is_trusted:
                             route_expiry = self.v6_cfg['route_expiry_ms']
@@ -550,8 +571,12 @@ class MeshNode:
                             self.v6_pkt_relayers[p.seq] = set()
                         self.v6_pkt_relayers[p.seq].add(p.txNodeId)
 
-                        # Recompute MPR set periodically
+                        # Recompute MPR + cluster head + TDMA periodically
                         total_obs = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
+                        if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
+                            self.v6_elect_cluster_head()
+                            if self.v6_is_cluster_head:
+                                self.v6_assign_tdma_slots()
                         if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
                             self.v6_compute_mpr()
 
@@ -585,7 +610,13 @@ class MeshNode:
         # Strong signal = short wait (this node is close, good relay)
         # Weak signal = long wait (far away, likely redundant)
         slot = get_current_slot_time()
-        wait_ms = slot * (self.v6_cfg['defer_slot_multiplier'] - rssi_normalized * 0.5)
+        # TDMA: if we have an assigned slot, use it instead of random defer
+        if self.v6_tdma_slot >= 0 and self.v6_tdma_slot_count > 0:
+            # Wait for our slot: slot_time * our_slot_number
+            # This eliminates collisions within the cluster
+            wait_ms = slot * self.v6_tdma_slot * 2
+        else:
+            wait_ms = slot * (self.v6_cfg['defer_slot_multiplier'] - rssi_normalized * 0.5)
         yield self.env.timeout(wait_ms)
 
         # Now check — did other relays already handle it?
@@ -804,6 +835,52 @@ class MeshNode:
         """After timeout, check if echo was received for this seq."""
         yield self.env.timeout(timeout_ms)
         self.v6_mark_echo_timeout(seq)
+
+    def v6_elect_cluster_head(self):
+        """LEACH-style cluster head election based on neighbor count + reliability.
+
+        Nodes with many neighbors and high reliability are better cluster heads.
+        Each node computes its own score; highest-scoring neighbor becomes the head.
+        """
+        # My score: neighbors * avg_reliability
+        my_nb_count = len(self.v6_neighbors)
+        if my_nb_count < 3:
+            self.v6_is_cluster_head = False
+            return
+
+        avg_rel = sum(self.v6_neighbor_reliability.get(nid, 0.8) for nid in self.v6_neighbors) / max(my_nb_count, 1)
+        self.v6_cluster_head_score = my_nb_count * avg_rel
+
+        # Check if I have the highest score among my neighbors
+        best_id = self.nodeid
+        best_score = self.v6_cluster_head_score
+        for n in self.nodes:
+            if n.nodeid in self.v6_neighbors and hasattr(n, 'v6_cluster_head_score'):
+                if n.v6_cluster_head_score > best_score:
+                    best_score = n.v6_cluster_head_score
+                    best_id = n.nodeid
+
+        if best_id == self.nodeid:
+            # I'm the cluster head
+            self.v6_is_cluster_head = True
+            self.v6_my_cluster_head = self.nodeid
+            self.v6_cluster_members = set(self.v6_neighbors.keys())
+        else:
+            self.v6_is_cluster_head = False
+            self.v6_my_cluster_head = best_id
+
+    def v6_assign_tdma_slots(self):
+        """Assign TDMA time slots to cluster members. Only called by cluster heads."""
+        if not self.v6_is_cluster_head:
+            return
+        members = sorted(self.v6_cluster_members)
+        self.v6_tdma_slot_count = len(members) + 1  # +1 for cluster head
+        self.v6_tdma_slot = 0  # cluster head gets slot 0
+        for i, member_id in enumerate(members):
+            for n in self.nodes:
+                if n.nodeid == member_id and hasattr(n, 'v6_tdma_slot'):
+                    n.v6_tdma_slot = i + 1
+                    n.v6_tdma_slot_count = self.v6_tdma_slot_count
 
     def v6_compute_mpr(self):
         """Compute MPR set from passively learned 2-hop topology.
