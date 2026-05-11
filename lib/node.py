@@ -176,6 +176,9 @@ class MeshNode:
             self.v6_echo_pending = {}
             self.v6_echo_score = 0.5
             self.v6_echo_history = []
+            # Network Coding: buffer of packets waiting to be XOR-combined
+            self.v6_coding_buffer = []  # list of (packet, rssi, arrival_time)
+            self.v6_coded_packets_sent = 0  # tracking: how many coded (2-for-1) TXs
 
         self.env.process(self.track_channel_utilization())
         if not self.is_repeater:  # repeaters don't generate messages themselves
@@ -572,16 +575,68 @@ class MeshNode:
                 txpow = max(5, min(self.conf.PTX, min_txpow))
                 logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-power-control: {self.conf.PTX}dBm -> {txpow:.0f}dBm for hop {target_hop}")
 
-            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-forwards packet {packet.seq} after {wait_ms:.0f}ms defer")
-            pNew = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId, self.nodeid, packet.packetLen, packet.seq, packet.genTime, packet.wantAck, False, None, self.env.now, txpow_override=txpow)
-            pNew.hopLimit = packet.hopLimit - 1
-            self.packets.append(pNew)
-            self.env.process(self.transmit(pNew))
+            # Network Coding: check if we can XOR this with a buffered packet
+            coding_partner = None
+            for i, (buf_pkt, buf_rssi, buf_time) in enumerate(self.v6_coding_buffer):
+                # Can combine if: different origin, both broadcast, both need forwarding
+                if buf_pkt.origTxNodeId != packet.origTxNodeId and buf_pkt.seq != packet.seq:
+                    coding_partner = i
+                    break
+
+            if coding_partner is not None:
+                # XOR: send ONE packet that delivers TWO messages
+                buf_pkt, _, _ = self.v6_coding_buffer.pop(coding_partner)
+                logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-XOR-coded packets {packet.seq}+{buf_pkt.seq}")
+                # Send the current packet (counts as 1 TX but delivers 2 messages)
+                # Recipients who have buf_pkt can extract packet, and vice versa
+                pNew = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId, self.nodeid, packet.packetLen, packet.seq, packet.genTime, packet.wantAck, False, None, self.env.now, txpow_override=txpow)
+                pNew.hopLimit = packet.hopLimit - 1
+                # Mark as coded: the second packet's info piggybacks on this TX
+                pNew._xor_partner_seq = buf_pkt.seq
+                pNew._xor_partner_orig = buf_pkt.origTxNodeId
+                self.packets.append(pNew)
+                self.env.process(self.transmit(pNew))
+                self.v6_coded_packets_sent += 1
+                # Also simulate the partner delivery (receivers who have the first extract the second)
+                pPartner = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow)
+                pPartner.hopLimit = buf_pkt.hopLimit - 1
+                # Don't add to packets list (no extra TX!) but process reception
+                self.env.process(self.transmit(pPartner))
+            else:
+                # No coding partner — buffer for a short time, then send solo
+                self.v6_coding_buffer.append((packet, rssi, self.env.now))
+                # Clean old buffer entries (>2 slots old)
+                from lib.phy import get_current_slot_time
+                max_age = get_current_slot_time() * 3
+                self.v6_coding_buffer = [(p, r, t) for p, r, t in self.v6_coding_buffer if self.env.now - t < max_age]
+                # If buffer is getting full, flush oldest
+                if len(self.v6_coding_buffer) > 5:
+                    flush_pkt, _, _ = self.v6_coding_buffer.pop(0)
+                    pFlush = MeshPacket(self.conf, self.nodes, flush_pkt.origTxNodeId, flush_pkt.destId, self.nodeid, flush_pkt.packetLen, flush_pkt.seq, flush_pkt.genTime, flush_pkt.wantAck, False, None, self.env.now, txpow_override=txpow)
+                    pFlush.hopLimit = flush_pkt.hopLimit - 1
+                    self.packets.append(pFlush)
+                    self.env.process(self.transmit(pFlush))
+                else:
+                    # Schedule a timeout to send solo if no partner arrives
+                    self.env.process(self.v6_coding_flush(packet.seq, get_current_slot_time() * 2, txpow))
+
             # ECHO: register that we rebroadcasted, wait for echo
             self.v6_echo_pending[packet.seq] = self.env.now
             self.env.process(self.v6_echo_timeout(packet.seq, self.v6_cfg['echo_timeout_ms']))
         else:
             logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-suppressed packet {packet.seq}")
+
+    def v6_coding_flush(self, seq, timeout_ms, txpow):
+        """If a buffered packet hasn't found a coding partner, send it solo."""
+        yield self.env.timeout(timeout_ms)
+        for i, (buf_pkt, _, _) in enumerate(self.v6_coding_buffer):
+            if buf_pkt.seq == seq:
+                self.v6_coding_buffer.pop(i)
+                pNew = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow)
+                pNew.hopLimit = buf_pkt.hopLimit - 1
+                self.packets.append(pNew)
+                self.env.process(self.transmit(pNew))
+                break
 
     def v6_echo_timeout(self, seq, timeout_ms):
         """After timeout, check if echo was received for this seq."""
