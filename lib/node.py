@@ -179,6 +179,9 @@ class MeshNode:
             # Network Coding: buffer of packets waiting to be XOR-combined
             self.v6_coding_buffer = []  # list of (packet, rssi, arrival_time)
             self.v6_coded_packets_sent = 0  # tracking: how many coded (2-for-1) TXs
+            # Watchdog: track whether next-hops actually forward packets
+            self.v6_watchdog_pending = {}  # {seq: {expected_relay: nodeId, time: float}}
+            self.v6_neighbor_reliability = {}  # {nodeId: float 0..1} — rolling reliability score
 
         self.env.process(self.track_channel_utilization())
         if not self.is_repeater:  # repeaters don't generate messages themselves
@@ -506,17 +509,29 @@ class MeshNode:
                                 self.v6_neighbors_of_neighbor[p.origTxNodeId] = set()
                             self.v6_neighbors_of_neighbor[p.origTxNodeId].add(p.txNodeId)
 
+                        # Watchdog: did our expected next-hop relay this packet?
+                        if p.seq in self.v6_watchdog_pending:
+                            expected = self.v6_watchdog_pending[p.seq].get('expected_relay')
+                            if p.txNodeId == expected:
+                                # Next-hop forwarded! Increase reliability
+                                del self.v6_watchdog_pending[p.seq]
+                                self.v6_update_reliability(expected, True)
+
                         # ECHO detection: works regardless of trust (observing rebroadcasts)
                         if p.seq in self.v6_echo_pending:
                             del self.v6_echo_pending[p.seq]
                             self.v6_echo_history.append((self.env.now, True))
                             self.v6_update_echo_score()
 
-                        # Learn routes: only from trusted packets
+                        # Learn routes: only from trusted packets, prefer reliable relays
                         if is_trusted:
                             route_expiry = self.v6_cfg['route_expiry_ms']
                             existing = self.v6_routes.get(p.origTxNodeId)
-                            if not existing or rssi > existing.get('rssi', -999) or (self.env.now - existing.get('time', 0)) > route_expiry:
+                            relay_reliability = self.v6_neighbor_reliability.get(p.txNodeId, 0.8)
+                            # Accept route if: no existing, better RSSI (weighted by reliability), or expired
+                            weighted_rssi = rssi + (relay_reliability - 0.5) * 10  # bonus for reliable relays
+                            existing_weighted = existing.get('rssi', -999) if existing else -999
+                            if not existing or weighted_rssi > existing_weighted or (self.env.now - existing.get('time', 0)) > route_expiry:
                                 self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
 
                         # Expire stale neighbors
@@ -631,8 +646,40 @@ class MeshNode:
             # ECHO: register that we rebroadcasted, wait for echo
             self.v6_echo_pending[packet.seq] = self.env.now
             self.env.process(self.v6_echo_timeout(packet.seq, self.v6_cfg['echo_timeout_ms']))
+
+            # Watchdog: if we have a known route for the destination, expect the next-hop to relay
+            if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
+                expected_relay = self.v6_routes[packet.destId]['nextHop']
+                self.v6_watchdog_pending[packet.seq] = {'expected_relay': expected_relay, 'time': self.env.now}
+                self.env.process(self.v6_watchdog_timeout(packet.seq, self.v6_cfg['echo_timeout_ms'] * 2))
         else:
             logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-suppressed packet {packet.seq}")
+
+    def v6_update_reliability(self, node_id, success):
+        """Update rolling reliability score for a neighbor."""
+        if node_id not in self.v6_neighbor_reliability:
+            self.v6_neighbor_reliability[node_id] = 0.8  # start optimistic
+        score = self.v6_neighbor_reliability[node_id]
+        # Exponential moving average: alpha=0.3
+        self.v6_neighbor_reliability[node_id] = score * 0.7 + (1.0 if success else 0.0) * 0.3
+        # If reliability drops below 0.3, remove from routes and MPR
+        if self.v6_neighbor_reliability[node_id] < 0.3:
+            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} WATCHDOG: demoting unreliable node {node_id}")
+            # Remove from routes
+            stale_origins = [orig for orig, r in self.v6_routes.items() if r['nextHop'] == node_id]
+            for orig in stale_origins:
+                del self.v6_routes[orig]
+            # Remove from MPR set
+            self.v6_mpr_set.discard(node_id)
+
+    def v6_watchdog_timeout(self, seq, timeout_ms):
+        """If expected relay didn't forward within timeout, mark as failure."""
+        yield self.env.timeout(timeout_ms)
+        if seq in self.v6_watchdog_pending:
+            expected = self.v6_watchdog_pending[seq].get('expected_relay')
+            del self.v6_watchdog_pending[seq]
+            if expected is not None:
+                self.v6_update_reliability(expected, False)
 
     def v6_coding_flush(self, seq, timeout_ms, txpow):
         """If a buffered packet hasn't found a coding partner, send it solo."""
