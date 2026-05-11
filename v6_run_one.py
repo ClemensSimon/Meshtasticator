@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a single simulation and output JSON result. Used by parallel runner."""
+"""Run a single simulation and output JSON result. Used by parallel runner and GA."""
 import sys, json, time, traceback
 
 def log(msg):
@@ -11,6 +11,16 @@ try:
     hop_limit = int(sys.argv[3])
     simtime_s = int(sys.argv[4]) if len(sys.argv) > 4 else 3600
     period_s = int(sys.argv[5]) if len(sys.argv) > 5 else 30
+    genome_file = sys.argv[6] if len(sys.argv) > 6 else None
+
+    # Load V6 genome parameters if provided
+    v6_params = None
+    if genome_file:
+        try:
+            with open(genome_file) as f:
+                v6_params = json.load(f)
+        except:
+            pass
 
     log(f"[{nr_nodes}n/{hop_limit}h/{router}] Starting (sim={simtime_s}s, period={period_s}s)...")
 
@@ -24,6 +34,9 @@ try:
     conf.SIMTIME = simtime_s * 1000
     conf.PERIOD = period_s * 1000
     conf.hopLimit = hop_limit
+    # Pass V6 parameters through config
+    if v6_params:
+        conf.V6_PARAMS = v6_params
     conf.update_router_dependencies()
 
     t0 = time.time()
@@ -38,7 +51,6 @@ try:
     pkts = sim.mutated_state.packets
     nodes = sim.mutated_state.nodes
 
-    # Fast counting — sum booleans directly on lists instead of O(P*N) nested loops
     t1 = time.time()
     tx = len(pkts)
     col = sum(sum(p.collidedAtN) for p in pkts)
@@ -47,7 +59,6 @@ try:
     reach = useful / max(msgs * (nr_nodes - 1), 1)
     dropped = sum(n.droppedByDelay for n in nodes)
 
-    # Time-series: TX per 2-min window
     WINDOW = 120_000
     n_win = int(conf.SIMTIME / WINDOW) + 1
     tx_win = [0] * n_win
@@ -56,9 +67,8 @@ try:
         if w < n_win:
             tx_win[w] += 1
 
-    t_analyze = time.time() - t1
     elapsed = time.time() - t0
-    log(f"[{nr_nodes}n/{hop_limit}h/{router}] Done! TX={tx} Reach={reach*100:.1f}% ({elapsed:.1f}s total, analysis={t_analyze:.1f}s)")
+    log(f"[{nr_nodes}n/{hop_limit}h/{router}] Done! TX={tx} Reach={reach*100:.1f}% ({elapsed:.1f}s)")
 
     print(json.dumps({
         'nr_nodes': nr_nodes, 'router': router, 'hop_limit': hop_limit,

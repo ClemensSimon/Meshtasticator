@@ -151,17 +151,31 @@ class MeshNode:
 
         # System V6: passive route learning state
         if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6:
-            self.v6_routes = {}       # {origNodeId: {nextHop: nodeId, rssi: float, time: float}}
-            self.v6_neighbors = {}    # {nodeId: {rssi: float, lastSeen: float, relayCount: int}}
-            self.v6_pkt_relayers = {} # {seq: set of nodeIds that relayed this packet}
-            # MPR: nodes I've designated as my relays (computed from 2-hop topology)
-            self.v6_mpr_set = set()           # set of nodeIds that are my MPRs
-            self.v6_am_mpr_for = set()        # set of nodeIds that selected ME as their MPR
-            self.v6_neighbors_of_neighbor = {} # {neighborId: set of their neighborIds} — 2-hop info
-            # ECHO backbone: track whether my rebroadcasts get "echoed" by downstream
-            self.v6_echo_pending = {}  # {seq: timestamp} — packets I rebroadcasted, waiting for echo
-            self.v6_echo_score = 0.5   # 0..1 — rolling score, high = I'm on backbone
-            self.v6_echo_history = []  # list of (timestamp, was_echoed) for rolling average
+            # Configurable parameters (from GA genome or defaults)
+            p = getattr(self.conf, 'V6_PARAMS', {})
+            self.v6_cfg = {
+                'route_expiry_ms': p.get('route_expiry_ms', 300000),
+                'neighbor_expiry_ms': p.get('neighbor_expiry_ms', 300000),
+                'echo_timeout_ms': p.get('echo_timeout_ms', 5000),
+                'echo_min_score': p.get('echo_min_score', 0.2),
+                'echo_min_observations': p.get('echo_min_observations', 5),
+                'mpr_recompute_interval': p.get('mpr_recompute_interval', 50),
+                'relay_redundancy_threshold': p.get('relay_redundancy_threshold', 2),
+                'gossip_probability': p.get('gossip_probability', 0.0),
+                'defer_slot_multiplier': p.get('defer_slot_multiplier', 1.5),
+                'rssi_margin_suppress': p.get('rssi_margin_suppress', 20),
+                'power_control_margin': p.get('power_control_margin', 10),
+                'density_threshold': p.get('density_threshold', 4),
+            }
+            self.v6_routes = {}
+            self.v6_neighbors = {}
+            self.v6_pkt_relayers = {}
+            self.v6_mpr_set = set()
+            self.v6_am_mpr_for = set()
+            self.v6_neighbors_of_neighbor = {}
+            self.v6_echo_pending = {}
+            self.v6_echo_score = 0.5
+            self.v6_echo_history = []
 
         self.env.process(self.track_channel_utilization())
         if not self.is_repeater:  # repeaters don't generate messages themselves
@@ -488,18 +502,26 @@ class MeshNode:
                             self.v6_echo_history.append((self.env.now, True))
                             self.v6_update_echo_score()
 
-                        # Learn routes: best relay for each origin
-                        if p.origTxNodeId not in self.v6_routes or rssi > self.v6_routes[p.origTxNodeId].get('rssi', -999):
+                        # Learn routes: best relay for each origin (with expiry check)
+                        route_expiry = self.v6_cfg['route_expiry_ms']
+                        existing = self.v6_routes.get(p.origTxNodeId)
+                        if not existing or rssi > existing.get('rssi', -999) or (self.env.now - existing.get('time', 0)) > route_expiry:
                             self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
+
+                        # Expire stale neighbors
+                        nb_expiry = self.v6_cfg['neighbor_expiry_ms']
+                        stale = [nid for nid, nb in self.v6_neighbors.items() if (self.env.now - nb['lastSeen']) > nb_expiry]
+                        for nid in stale:
+                            del self.v6_neighbors[nid]
 
                         # Track which relayers we've heard for this specific packet
                         if p.seq not in self.v6_pkt_relayers:
                             self.v6_pkt_relayers[p.seq] = set()
                         self.v6_pkt_relayers[p.seq].add(p.txNodeId)
 
-                        # Recompute MPR set periodically (every 50 new neighbor observations)
+                        # Recompute MPR set periodically
                         total_obs = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
-                        if total_obs % 50 == 0 and len(self.v6_neighbors) >= 3:
+                        if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
                             self.v6_compute_mpr()
 
                         # Forward decision with deferred rebroadcast
@@ -524,7 +546,7 @@ class MeshNode:
         # Strong signal = short wait (this node is close, good relay)
         # Weak signal = long wait (far away, likely redundant)
         slot = get_current_slot_time()
-        wait_ms = slot * (1.5 - rssi_normalized)  # 0.5-1.5 slots
+        wait_ms = slot * (self.v6_cfg['defer_slot_multiplier'] - rssi_normalized * 0.5)
         yield self.env.timeout(wait_ms)
 
         # Now check — did other relays already handle it?
@@ -557,7 +579,7 @@ class MeshNode:
             self.env.process(self.transmit(pNew))
             # ECHO: register that we rebroadcasted, wait for echo
             self.v6_echo_pending[packet.seq] = self.env.now
-            self.env.process(self.v6_echo_timeout(packet.seq, 5000))  # 5s timeout
+            self.env.process(self.v6_echo_timeout(packet.seq, self.v6_cfg['echo_timeout_ms']))
         else:
             logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-suppressed packet {packet.seq}")
 
@@ -650,14 +672,19 @@ class MeshNode:
                 return False
 
         # --- ECHO backbone: suppress if I'm consistently not echoed ---
-        # Low echo score means my rebroadcasts aren't being picked up downstream.
-        # I'm a leaf or redundant relay — save airtime.
-        if len(self.v6_echo_history) >= 5 and self.v6_echo_score < 0.2:
+        if len(self.v6_echo_history) >= self.v6_cfg['echo_min_observations'] and self.v6_echo_score < self.v6_cfg['echo_min_score']:
             return False
 
         # --- Relay redundancy ---
-        if len(relayers) >= 2:
+        if len(relayers) >= self.v6_cfg['relay_redundancy_threshold']:
             return False
+
+        # --- Gossip: non-MPR nodes forward with small probability ---
+        gossip_p = self.v6_cfg['gossip_probability']
+        if gossip_p > 0 and self.v6_am_mpr_for and packet.txNodeId not in self.v6_am_mpr_for:
+            # I'm not MPR for this sender — gossip forward with probability
+            if random.random() > gossip_p:
+                return False
 
         # Default: forward
         return True
