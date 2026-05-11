@@ -3,336 +3,293 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MeshRoute System V6 — GA Evolution Dashboard</title>
+<title>MeshRoute V6 — GA Live Dashboard</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0e1a; color: #e2e8f0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-
-  .header { padding: 1.5rem 2rem; background: linear-gradient(135deg, #0f172a, #1e293b); border-bottom: 1px solid #334155; }
-  .header h1 { font-size: 1.4rem; color: #22d3ee; }
-  .header .sub { color: #94a3b8; font-size: 0.8rem; margin-top: 0.3rem; }
-  .header .status { float: right; padding: 0.3rem 0.8rem; border-radius: 6px; font-size: 0.75rem; }
-  .status.running { background: #065f46; color: #4ade80; }
-  .status.done { background: #1e3a5f; color: #60a5fa; }
-  .status.error { background: #7f1d1d; color: #fca5a5; }
-
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 2rem; }
-  .grid3 { grid-template-columns: 1fr 1fr 1fr; }
-  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 1rem; }
-  .card h2 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-
-  canvas { width: 100%; height: 250px; }
-  .big-number { font-size: 2.5rem; font-weight: 700; }
-  .big-number.cyan { color: #22d3ee; }
-  .big-number.green { color: #4ade80; }
-  .big-number.orange { color: #fb923c; }
-  .big-label { font-size: 0.7rem; color: #64748b; margin-top: 0.2rem; }
-
-  .scenario-row { display: flex; gap: 0.5rem; margin: 0.4rem 0; align-items: center; }
-  .scenario-name { width: 80px; font-size: 0.7rem; color: #94a3b8; }
-  .bar-bg { flex: 1; height: 20px; background: #0f172a; border-radius: 4px; overflow: hidden; position: relative; }
-  .bar-mf { height: 100%; background: #fb923c; position: absolute; opacity: 0.4; }
-  .bar-v6 { height: 100%; background: #22d3ee; position: absolute; }
-  .bar-label { position: absolute; right: 4px; top: 2px; font-size: 0.6rem; color: #fff; }
-
-  .log { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.8rem;
-         max-height: 300px; overflow-y: auto; font-size: 0.7rem; line-height: 1.6; }
-  .log-entry { border-bottom: 1px solid #1e293b; padding: 0.2rem 0; }
-  .log-best { color: #4ade80; font-weight: 700; }
-  .log-fail { color: #f87171; }
-
-  .genome-table { width: 100%; font-size: 0.7rem; border-collapse: collapse; }
-  .genome-table td { padding: 0.25rem 0.5rem; border-bottom: 1px solid #1e293b; }
-  .genome-table td:first-child { color: #94a3b8; }
-  .genome-table td:last-child { color: #22d3ee; text-align: right; font-weight: 600; }
-
-  #refresh-timer { color: #64748b; font-size: 0.7rem; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#e2e8f0;font-family:'JetBrains Mono',monospace;padding:1rem}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding:0.8rem 1rem;background:#1e293b;border-radius:8px;border:1px solid #334155}
+.hdr h1{font-size:1.2rem;color:#22d3ee}
+.hdr .st{padding:0.2rem 0.6rem;border-radius:4px;font-size:0.7rem}
+.st.run{background:#065f46;color:#4ade80}.st.stop{background:#7f1d1d;color:#fca5a5}
+.grid{display:grid;gap:0.8rem;margin-bottom:0.8rem}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:0.8rem}
+.card h3{font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem}
+.num{font-size:2rem;font-weight:700;line-height:1}
+.num.cy{color:#22d3ee}.num.gn{color:#4ade80}.num.or{color:#fb923c}.num.rd{color:#f87171}
+.lbl{font-size:0.6rem;color:#475569;margin-top:0.2rem}
+canvas{width:100%;height:200px;display:block}
+.log{background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:0.5rem;max-height:250px;overflow-y:auto;font-size:0.65rem;line-height:1.5}
+.log .b{color:#4ade80;font-weight:700}.log .f{color:#f87171}
+.bars{font-size:0.7rem}
+.bar-row{display:flex;align-items:center;margin:0.3rem 0}
+.bar-name{width:70px;color:#94a3b8;font-size:0.65rem}
+.bar-track{flex:1;height:16px;background:#0f172a;border-radius:3px;position:relative;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width 0.5s}
+.bar-val{position:absolute;right:3px;top:1px;font-size:0.6rem;color:#fff}
+table{width:100%;font-size:0.65rem;border-collapse:collapse}
+td{padding:0.2rem 0.4rem;border-bottom:1px solid #1e293b}
+td:first-child{color:#94a3b8}td:last-child{color:#22d3ee;text-align:right;font-weight:600}
 </style>
 </head>
 <body>
-
-<div class="header">
-  <span class="status" id="ga-status">Loading...</span>
-  <h1>MeshRoute System V6 — GA Evolution Dashboard</h1>
-  <div class="sub">Genetic Algorithm optimizing 12 parameters across 3 scenarios | <span id="refresh-timer">Auto-refresh: 10s</span></div>
+<div class="hdr">
+  <h1>MeshRoute System V6 — GA Evolution</h1>
+  <div><span class="st" id="status">LOADING</span> <span style="font-size:0.6rem;color:#64748b" id="timer">refresh: 5s</span></div>
 </div>
 
-<!-- Row 1: Key metrics -->
-<div class="grid grid3">
-  <div class="card" style="text-align:center;">
-    <h2>Best Worst-Case Score</h2>
-    <div class="big-number green" id="best-score">--</div>
-    <div class="big-label">Higher = better (reach-weighted)</div>
-  </div>
-  <div class="card" style="text-align:center;">
-    <h2>Generation</h2>
-    <div class="big-number cyan" id="current-gen">--</div>
-    <div class="big-label" id="gen-progress">of -- total</div>
-  </div>
-  <div class="card" style="text-align:center;">
-    <h2>Evaluations</h2>
-    <div class="big-number orange" id="total-evals">--</div>
-    <div class="big-label">simulations completed</div>
-  </div>
+<div class="grid g4">
+  <div class="card" style="text-align:center"><h3>Best Score</h3><div class="num gn" id="best-score">--</div><div class="lbl">worst-case across scenarios</div></div>
+  <div class="card" style="text-align:center"><h3>Generation</h3><div class="num cy" id="gen">--</div><div class="lbl" id="gen-of">of 30</div></div>
+  <div class="card" style="text-align:center"><h3>Evaluations</h3><div class="num or" id="evals">--</div><div class="lbl">individuals tested</div></div>
+  <div class="card" style="text-align:center"><h3>Improvements</h3><div class="num gn" id="improvements">--</div><div class="lbl">NEW BEST found</div></div>
 </div>
 
-<!-- Row 2: Charts -->
-<div class="grid">
+<div class="grid g2">
+  <div class="card"><h3>Best Score per Generation</h3><canvas id="c1"></canvas></div>
+  <div class="card"><h3>TX Reduction % (best per gen, per scenario)</h3><canvas id="c2"></canvas></div>
+</div>
+
+<div class="grid g2">
+  <div class="card"><h3>Reach % (best per gen, per scenario)</h3><canvas id="c3"></canvas></div>
+  <div class="card"><h3>All Individual Scores (scatter)</h3><canvas id="c4"></canvas></div>
+</div>
+
+<div class="grid g2">
   <div class="card">
-    <h2>Score Evolution (best per generation)</h2>
-    <canvas id="chart-score"></canvas>
+    <h3>Current Best — Scenario Results</h3>
+    <div class="bars" id="bars">waiting...</div>
   </div>
   <div class="card">
-    <h2>TX Reduction % (per scenario, best genome)</h2>
-    <canvas id="chart-tx"></canvas>
+    <h3>Best Genome</h3>
+    <table id="genome"><tr><td colspan="2">waiting...</td></tr></table>
   </div>
 </div>
 
-<!-- Row 3: Scenario bars + Best genome -->
-<div class="grid">
-  <div class="card">
-    <h2>Current Best — Scenario Performance</h2>
-    <div id="scenario-bars"></div>
-  </div>
-  <div class="card">
-    <h2>Best Genome Parameters</h2>
-    <table class="genome-table" id="genome-table"><tr><td colspan="2">Loading...</td></tr></table>
-  </div>
-</div>
-
-<!-- Row 4: Live log -->
-<div style="padding: 0 2rem 2rem;">
-  <div class="card">
-    <h2>Live GA Log (last 30 entries)</h2>
-    <div class="log" id="live-log">Waiting for data...</div>
-  </div>
-</div>
+<div class="card"><h3>Live Log</h3><div class="log" id="log">waiting...</div></div>
 
 <script>
-const REFRESH_MS = 10000;
-let bestPerGen = [];
-let txPerGen = {};
+let parsed = {gens:{}, bestPerGen:[], allScores:[], bestEver:null, bestScore:-999, totalEvals:0, improvements:0, currentGen:0};
 
-async function fetchJSON(url) {
-  try {
-    const r = await fetch(url + '?t=' + Date.now());
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
-}
-
-async function fetchText(url) {
-  try {
-    const r = await fetch(url + '?t=' + Date.now());
-    if (!r.ok) return null;
-    return await r.text();
-  } catch { return null; }
-}
-
-function drawLineChart(canvasId, data, color, label, yLabel) {
-  const canvas = document.getElementById(canvasId);
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width = canvas.parentElement.clientWidth - 32;
-  const H = canvas.height = 250;
-  const pad = { t: 20, r: 20, b: 30, l: 50 };
-
-  ctx.clearRect(0, 0, W, H);
-
-  if (!data || data.length === 0) {
-    ctx.fillStyle = '#64748b';
-    ctx.font = '12px monospace';
-    ctx.fillText('No data yet...', W/2 - 40, H/2);
-    return;
-  }
-
-  const minY = Math.min(...data) * 0.9;
-  const maxY = Math.max(...data) * 1.1 || 1;
-
-  // Grid
-  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.t + (H - pad.t - pad.b) * i / 4;
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#475569'; ctx.font = '10px monospace';
-    const val = maxY - (maxY - minY) * i / 4;
-    ctx.fillText(val.toFixed(0), 5, y + 4);
-  }
-
-  // Line
-  ctx.strokeStyle = color; ctx.lineWidth = 2;
-  ctx.beginPath();
-  data.forEach((v, i) => {
-    const x = pad.l + (W - pad.l - pad.r) * i / Math.max(data.length - 1, 1);
-    const y = pad.t + (H - pad.t - pad.b) * (1 - (v - minY) / (maxY - minY || 1));
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  // Dots
-  ctx.fillStyle = color;
-  data.forEach((v, i) => {
-    const x = pad.l + (W - pad.l - pad.r) * i / Math.max(data.length - 1, 1);
-    const y = pad.t + (H - pad.t - pad.b) * (1 - (v - minY) / (maxY - minY || 1));
-    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
-  });
-
-  // Label
-  ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace';
-  ctx.fillText(label, pad.l, H - 5);
-  if (data.length > 0) {
-    ctx.fillStyle = color; ctx.font = 'bold 12px monospace';
-    ctx.fillText(data[data.length-1].toFixed(1), W - pad.r - 40, pad.t + 15);
-  }
-}
-
-function drawMultiBarChart(canvasId, datasets) {
-  const canvas = document.getElementById(canvasId);
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width = canvas.parentElement.clientWidth - 32;
-  const H = canvas.height = 250;
-  const pad = { t: 20, r: 20, b: 40, l: 50 };
-
-  ctx.clearRect(0, 0, W, H);
-  if (!datasets || Object.keys(datasets).length === 0) return;
-
-  const colors = { standard: '#22d3ee', dense: '#a78bfa', sparse: '#fb923c' };
-  const names = Object.keys(datasets);
-  const maxLen = Math.max(...names.map(n => datasets[n].length));
-  const allVals = names.flatMap(n => datasets[n]);
-  const maxY = Math.max(...allVals, 10);
-
-  names.forEach((name, ni) => {
-    const data = datasets[name];
-    const color = colors[name] || '#e2e8f0';
-    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    data.forEach((v, i) => {
-      const x = pad.l + (W - pad.l - pad.r) * i / Math.max(maxLen - 1, 1);
-      const y = pad.t + (H - pad.t - pad.b) * (1 - v / maxY);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    ctx.fillStyle = color; ctx.font = '10px monospace';
-    ctx.fillText(name, pad.l + ni * 80, H - 5);
-  });
-}
-
-function updateScenarioBars(details) {
-  const container = document.getElementById('scenario-bars');
-  if (!details) { container.innerHTML = 'No data'; return; }
-
-  let html = '';
-  const maxTx = 50;
-  details.forEach(([name, score, txSave, v6Reach, mfReach]) => {
-    const txW = Math.min(Math.abs(txSave), maxTx) / maxTx * 100;
-    const reachDelta = v6Reach - mfReach;
-    const reachColor = reachDelta >= 0 ? '#4ade80' : '#f87171';
-    html += `<div class="scenario-row">
-      <div class="scenario-name">${name}</div>
-      <div class="bar-bg">
-        <div class="bar-v6" style="width:${txW}%"></div>
-        <div class="bar-label">TX:${txSave > 0 ? '+' : ''}${txSave.toFixed(0)}% | Reach:${v6Reach.toFixed(0)}% <span style="color:${reachColor}">(${reachDelta >= 0 ? '+' : ''}${reachDelta.toFixed(1)}pp)</span></div>
-      </div>
-    </div>`;
-  });
-  container.innerHTML = html;
-}
-
-function updateGenomeTable(genome) {
-  const table = document.getElementById('genome-table');
-  if (!genome) return;
-  const labels = {
-    route_expiry_ms: 'Route Expiry', neighbor_expiry_ms: 'Neighbor Expiry',
-    echo_timeout_ms: 'Echo Timeout', echo_min_score: 'Echo Min Score',
-    echo_min_observations: 'Echo Min Obs', mpr_recompute_interval: 'MPR Interval',
-    relay_redundancy_threshold: 'Relay Threshold', gossip_probability: 'Gossip %',
-    defer_slot_multiplier: 'Defer Mult', rssi_margin_suppress: 'RSSI Margin',
-    power_control_margin: 'Power Margin', density_threshold: 'Density Thr',
-  };
-  let html = '';
-  for (const [k, v] of Object.entries(genome)) {
-    const label = labels[k] || k;
-    let display = v;
-    if (k.endsWith('_ms')) display = (v / 1000).toFixed(0) + 's';
-    else if (k === 'gossip_probability') display = (v * 100).toFixed(1) + '%';
-    else if (typeof v === 'number' && !Number.isInteger(v)) display = v.toFixed(2);
-    html += `<tr><td>${label}</td><td>${display}</td></tr>`;
-  }
-  table.innerHTML = html;
+function parseLine(line) {
+  // Parse: [HH:MM:SS]   #N: worst=X [scenario:score/txPct/reachPct | ...]
+  const m = line.match(/#(\d+): worst=([-\d.]+) \[(.+)\]/);
+  if (!m) return null;
+  const ind = parseInt(m[1]);
+  const worst = parseFloat(m[2]);
+  const details = m[3].split(' | ').map(s => {
+    const dm = s.match(/(\w+):([-\d.]+)\/([-+\d.]+)%\/([\d.]+)%/);
+    if (!dm) return null;
+    return {name:dm[1], score:parseFloat(dm[2]), tx:parseFloat(dm[3]), reach:parseFloat(dm[4])};
+  }).filter(Boolean);
+  return {ind, worst, details};
 }
 
 async function refresh() {
-  // Try to load best genome
-  const best = await fetchJSON('ga_overnight_best.json');
-  if (best) {
-    document.getElementById('best-score').textContent = best.score ? best.score.toFixed(0) : '--';
-    if (best.details) updateScenarioBars(best.details);
-    if (best.genome) updateGenomeTable(best.genome);
-    if (best.generation) document.getElementById('current-gen').textContent = best.generation;
-  }
+  let text;
+  try {
+    const r = await fetch('ga_overnight_log.txt?t='+Date.now());
+    if (!r.ok) return;
+    text = await r.text();
+  } catch { return; }
 
-  // Try to load all results for charts
-  const all = await fetchJSON('ga_overnight_all.json');
-  if (all && all.length > 0) {
-    document.getElementById('total-evals').textContent = all.length;
+  const lines = text.trim().split('\n');
+  parsed.totalEvals = 0;
+  parsed.improvements = 0;
+  parsed.bestScore = -999;
+  parsed.bestPerGen = [];
+  parsed.allScores = [];
+  let curGen = 0;
+  let genBest = {};
 
-    // Best score per generation
-    const genScores = {};
-    const genTx = { standard: {}, dense: {}, sparse: {} };
-    all.forEach(r => {
-      const g = r.gen;
-      if (!genScores[g] || r.worst > genScores[g]) genScores[g] = r.worst;
-      if (r.details) {
-        r.details.forEach(([name, score, tx, reach, mfReach]) => {
-          if (genTx[name] && (!genTx[name][g] || score > (genTx[name][g] || -999))) {
-            genTx[name][g] = tx;
-          }
-        });
+  for (const line of lines) {
+    const gm = line.match(/Gen (\d+)\/(\d+)/);
+    if (gm) { curGen = parseInt(gm[1]); parsed.currentGen = curGen; }
+
+    const r = parseLine(line);
+    if (r) {
+      parsed.totalEvals++;
+      parsed.allScores.push({gen:curGen, score:r.worst});
+      if (!genBest[curGen] || r.worst > genBest[curGen].worst) {
+        genBest[curGen] = r;
       }
-    });
-
-    const gens = Object.keys(genScores).map(Number).sort((a,b) => a-b);
-    bestPerGen = gens.map(g => genScores[g]);
-    document.getElementById('gen-progress').textContent = `gen ${gens[gens.length-1]} reached`;
-
-    txPerGen = {};
-    for (const name of ['standard', 'dense', 'sparse']) {
-      txPerGen[name] = gens.map(g => genTx[name][g] || 0);
+      if (r.worst > parsed.bestScore) {
+        parsed.bestScore = r.worst;
+        parsed.bestEver = r;
+      }
     }
-
-    drawLineChart('chart-score', bestPerGen, '#4ade80', 'Best worst-case score per generation', 'Score');
-    drawMultiBarChart('chart-tx', txPerGen);
+    if (line.includes('NEW BEST')) parsed.improvements++;
   }
 
-  // Load log
-  const logText = await fetchText('ga_overnight_log.txt');
-  if (logText) {
-    const lines = logText.trim().split('\n').slice(-30);
-    const logDiv = document.getElementById('live-log');
-    logDiv.innerHTML = lines.map(l => {
-      let cls = 'log-entry';
-      if (l.includes('NEW BEST')) cls += ' log-best';
-      if (l.includes('-999') || l.includes('FAIL')) cls += ' log-fail';
-      return `<div class="${cls}">${l.replace(/</g, '&lt;')}</div>`;
-    }).join('');
-    logDiv.scrollTop = logDiv.scrollHeight;
-  }
+  // Best per gen
+  const gens = Object.keys(genBest).map(Number).sort((a,b)=>a-b);
+  parsed.bestPerGen = gens.map(g => genBest[g].worst);
+
+  // Update UI
+  document.getElementById('best-score').textContent = parsed.bestScore > -900 ? parsed.bestScore.toFixed(0) : '--';
+  document.getElementById('gen').textContent = parsed.currentGen || '--';
+  document.getElementById('evals').textContent = parsed.totalEvals;
+  document.getElementById('improvements').textContent = parsed.improvements;
 
   // Status
-  const statusEl = document.getElementById('ga-status');
-  const logLines = await fetchText('ga_overnight_log.txt');
-  if (logLines && logLines.includes('FINAL BEST')) {
-    statusEl.textContent = 'COMPLETED'; statusEl.className = 'status done';
-  } else if (logLines && logLines.trim().length > 0) {
-    statusEl.textContent = 'RUNNING'; statusEl.className = 'status running';
-  } else {
-    statusEl.textContent = 'WAITING'; statusEl.className = 'status error';
+  const st = document.getElementById('status');
+  const lastLine = lines[lines.length-1] || '';
+  if (lastLine.includes('FINAL')) { st.textContent='DONE'; st.className='st stop'; }
+  else if (parsed.totalEvals > 0) { st.textContent='RUNNING'; st.className='st run'; }
+  else { st.textContent='WAITING'; st.className='st stop'; }
+
+  // Charts
+  drawLine('c1', parsed.bestPerGen, '#4ade80', 'Best worst-case score');
+
+  // TX per scenario per gen
+  const txData = {};
+  gens.forEach(g => {
+    if (genBest[g].details) {
+      genBest[g].details.forEach(d => {
+        if (!txData[d.name]) txData[d.name] = [];
+        txData[d.name].push(d.tx);
+      });
+    }
+  });
+  drawMulti('c2', txData, {standard:'#22d3ee',dense:'#a78bfa',sparse:'#fb923c'}, '%');
+
+  // Reach per scenario per gen
+  const reachData = {};
+  gens.forEach(g => {
+    if (genBest[g].details) {
+      genBest[g].details.forEach(d => {
+        if (!reachData[d.name]) reachData[d.name] = [];
+        reachData[d.name].push(d.reach);
+      });
+    }
+  });
+  drawMulti('c3', reachData, {standard:'#22d3ee',dense:'#a78bfa',sparse:'#fb923c'}, '%');
+
+  // Scatter: all scores
+  drawScatter('c4', parsed.allScores);
+
+  // Bars
+  if (parsed.bestEver && parsed.bestEver.details) {
+    let html = '';
+    parsed.bestEver.details.forEach(d => {
+      const txW = Math.min(Math.max(d.tx, 0), 60) / 60 * 100;
+      const rc = d.reach > 0 ? '#4ade80' : '#f87171';
+      html += `<div class="bar-row"><div class="bar-name">${d.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${txW}%;background:#22d3ee"></div>
+        <div class="bar-val">TX:${d.tx>0?'+':''}${d.tx.toFixed(0)}% | Reach:${d.reach.toFixed(0)}%</div></div></div>`;
+    });
+    document.getElementById('bars').innerHTML = html;
   }
+
+  // Genome
+  try {
+    const gr = await fetch('ga_overnight_best.json?t='+Date.now());
+    if (gr.ok) {
+      const gd = await gr.json();
+      if (gd.genome) {
+        const labels = {route_expiry_ms:'Route Exp',neighbor_expiry_ms:'Nb Exp',echo_timeout_ms:'Echo TO',
+          echo_min_score:'Echo MinS',echo_min_observations:'Echo MinO',mpr_recompute_interval:'MPR Int',
+          relay_redundancy_threshold:'Relay Thr',gossip_probability:'Gossip',defer_slot_multiplier:'Defer',
+          rssi_margin_suppress:'RSSI Mrg',power_control_margin:'Pwr Mrg',density_threshold:'Density'};
+        let t='';
+        for (const [k,v] of Object.entries(gd.genome)) {
+          let d=v;
+          if(k.endsWith('_ms'))d=(v/1000).toFixed(0)+'s';
+          else if(k==='gossip_probability')d=(v*100).toFixed(1)+'%';
+          else if(typeof v==='number'&&!Number.isInteger(v))d=v.toFixed(2);
+          t+=`<tr><td>${labels[k]||k}</td><td>${d}</td></tr>`;
+        }
+        document.getElementById('genome').innerHTML=t;
+      }
+    }
+  } catch {}
+
+  // Log
+  const logLines = lines.slice(-25);
+  document.getElementById('log').innerHTML = logLines.map(l => {
+    let c='';
+    if(l.includes('NEW BEST'))c=' b';
+    if(l.includes('-999')||l.includes('-575'))c=' f';
+    return `<div class="${c}">${l.replace(/</g,'&lt;')}</div>`;
+  }).join('');
+  document.getElementById('log').scrollTop = 99999;
+}
+
+function drawLine(id, data, color, label) {
+  const cv = document.getElementById(id);
+  const c = cv.getContext('2d');
+  const W = cv.width = cv.parentElement.clientWidth - 20;
+  const H = cv.height = 200;
+  c.clearRect(0,0,W,H);
+  if(!data.length){c.fillStyle='#475569';c.font='11px monospace';c.fillText('Waiting for data...',W/2-60,H/2);return;}
+  const P={t:15,r:15,b:25,l:45};
+  const mn=Math.min(...data)*0.9,mx=Math.max(...data)*1.1||1;
+  // grid
+  c.strokeStyle='#1e293b';c.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=P.t+(H-P.t-P.b)*i/4;c.beginPath();c.moveTo(P.l,y);c.lineTo(W-P.r,y);c.stroke();
+    c.fillStyle='#475569';c.font='9px monospace';c.fillText((mx-(mx-mn)*i/4).toFixed(0),2,y+3);}
+  // line
+  c.strokeStyle=color;c.lineWidth=2;c.beginPath();
+  data.forEach((v,i)=>{const x=P.l+(W-P.l-P.r)*i/Math.max(data.length-1,1);const y=P.t+(H-P.t-P.b)*(1-(v-mn)/(mx-mn||1));i?c.lineTo(x,y):c.moveTo(x,y);});
+  c.stroke();
+  // dots + last value
+  c.fillStyle=color;
+  data.forEach((v,i)=>{const x=P.l+(W-P.l-P.r)*i/Math.max(data.length-1,1);const y=P.t+(H-P.t-P.b)*(1-(v-mn)/(mx-mn||1));c.beginPath();c.arc(x,y,3,0,7);c.fill();});
+  c.font='bold 12px monospace';c.fillText(data[data.length-1].toFixed(0),W-P.r-30,P.t+12);
+  c.fillStyle='#64748b';c.font='9px monospace';c.fillText('Gen',P.l,H-3);
+}
+
+function drawMulti(id, datasets, colors, unit) {
+  const cv=document.getElementById(id);const c=cv.getContext('2d');
+  const W=cv.width=cv.parentElement.clientWidth-20;const H=cv.height=200;
+  c.clearRect(0,0,W,H);
+  const names=Object.keys(datasets);
+  if(!names.length||!datasets[names[0]].length){c.fillStyle='#475569';c.font='11px monospace';c.fillText('Waiting...',W/2-30,H/2);return;}
+  const P={t:15,r:15,b:25,l:45};
+  const all=names.flatMap(n=>datasets[n]);
+  const mn=Math.min(...all,0);const mx=Math.max(...all)*1.1||1;
+  const maxLen=Math.max(...names.map(n=>datasets[n].length));
+  // grid
+  c.strokeStyle='#1e293b';c.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=P.t+(H-P.t-P.b)*i/4;c.beginPath();c.moveTo(P.l,y);c.lineTo(W-P.r,y);c.stroke();
+    c.fillStyle='#475569';c.font='9px monospace';c.fillText((mx-(mx-mn)*i/4).toFixed(0)+unit,2,y+3);}
+  // lines
+  names.forEach((name,ni)=>{
+    const data=datasets[name];const col=colors[name]||'#e2e8f0';
+    c.strokeStyle=col;c.lineWidth=1.5;c.beginPath();
+    data.forEach((v,i)=>{const x=P.l+(W-P.l-P.r)*i/Math.max(maxLen-1,1);const y=P.t+(H-P.t-P.b)*(1-(v-mn)/(mx-mn||1));i?c.lineTo(x,y):c.moveTo(x,y);});
+    c.stroke();
+    c.fillStyle=col;c.font='9px monospace';c.fillText(name,P.l+ni*70,H-3);
+  });
+}
+
+function drawScatter(id, data) {
+  const cv=document.getElementById(id);const c=cv.getContext('2d');
+  const W=cv.width=cv.parentElement.clientWidth-20;const H=cv.height=200;
+  c.clearRect(0,0,W,H);
+  if(!data.length){c.fillStyle='#475569';c.font='11px monospace';c.fillText('Waiting...',W/2-30,H/2);return;}
+  const P={t:15,r:15,b:25,l:45};
+  const scores=data.map(d=>d.score).filter(s=>s>-900);
+  if(!scores.length)return;
+  const mn=Math.min(...scores)*0.9;const mx=Math.max(...scores)*1.1||1;
+  const maxGen=Math.max(...data.map(d=>d.gen));
+  // grid
+  c.strokeStyle='#1e293b';c.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=P.t+(H-P.t-P.b)*i/4;c.beginPath();c.moveTo(P.l,y);c.lineTo(W-P.r,y);c.stroke();}
+  // dots
+  data.forEach(d=>{
+    if(d.score<-900)return;
+    const x=P.l+(W-P.l-P.r)*d.gen/Math.max(maxGen,1);
+    const y=P.t+(H-P.t-P.b)*(1-(d.score-mn)/(mx-mn||1));
+    c.fillStyle=d.score>0?'rgba(34,211,238,0.4)':'rgba(248,113,113,0.4)';
+    c.beginPath();c.arc(x,y,2.5,0,7);c.fill();
+  });
+  c.fillStyle='#64748b';c.font='9px monospace';c.fillText('Gen',P.l,H-3);
+  c.fillText('Score',2,P.t+10);
 }
 
 refresh();
-setInterval(refresh, REFRESH_MS);
-window.addEventListener('resize', refresh);
+setInterval(refresh, 5000);
 </script>
 </body>
 </html>
