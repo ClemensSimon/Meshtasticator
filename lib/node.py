@@ -557,7 +557,7 @@ class MeshNode:
 
                         # Forward decision: aggregate broadcasts, forward DMs directly
                         if not self.is_client_mute:
-                            if p.destId == NODENUM_BROADCAST and len(self.v6_neighbors) >= 4:
+                            if p.destId == NODENUM_BROADCAST and len(self.v6_neighbors) >= 8:
                                 # Broadcast in dense area: aggregate instead of individual relay
                                 self.v6_aggregation_buffer[p.origTxNodeId] = {'seq': p.seq, 'time': self.env.now, 'packet': p, 'rssi': rssi}
                                 if not self.v6_aggregation_timer_active:
