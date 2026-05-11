@@ -167,6 +167,9 @@ class MeshNode:
                 'power_control_margin': p.get('power_control_margin', 10),
                 'density_threshold': p.get('density_threshold', 4),
             }
+            # Adaptive parameter profiles: auto-detect scenario and adjust
+            self.v6_detected_scenario = 'unknown'  # sparse/standard/dense/congested
+            self.v6_last_adaptation = 0
             self.v6_routes = {}
             self.v6_neighbors = {}
             self.v6_pkt_relayers = {}
@@ -571,8 +574,9 @@ class MeshNode:
                             self.v6_pkt_relayers[p.seq] = set()
                         self.v6_pkt_relayers[p.seq].add(p.txNodeId)
 
-                        # Recompute MPR + cluster head + TDMA periodically
+                        # Periodically: adapt parameters, recompute MPR + cluster head
                         total_obs = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
+                        self.v6_adapt_to_scenario()
                         if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
                             self.v6_elect_cluster_head()
                             if self.v6_is_cluster_head:
@@ -835,6 +839,73 @@ class MeshNode:
         """After timeout, check if echo was received for this seq."""
         yield self.env.timeout(timeout_ms)
         self.v6_mark_echo_timeout(seq)
+
+    def v6_adapt_to_scenario(self):
+        """Auto-detect network scenario and adapt parameters.
+
+        Detection signals:
+        - active_neighbors: sparse (<5) / standard (5-15) / dense (>15)
+        - channel_util: idle (<10%) / normal (10-25%) / congested (>25%)
+        - mobility: static (no position changes) / mobile (frequent changes)
+
+        Each scenario gets optimized parameters from GA profiles.
+        """
+        if self.env.now - self.v6_last_adaptation < 30000:  # adapt every 30s max
+            return
+        self.v6_last_adaptation = self.env.now
+
+        active_nb = len(self.v6_neighbors)
+        chan_util = self.channel_utilization_percent()
+
+        # Detect scenario
+        if active_nb <= 4:
+            scenario = 'sparse'
+        elif chan_util > 25 or active_nb > 20:
+            scenario = 'congested'
+        elif active_nb > 12:
+            scenario = 'dense'
+        else:
+            scenario = 'standard'
+
+        if scenario == self.v6_detected_scenario:
+            return  # no change needed
+
+        self.v6_detected_scenario = scenario
+        logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-ADAPT: scenario={scenario} (nb={active_nb}, util={chan_util:.1f}%)")
+
+        # GA-optimized profiles per scenario
+        if scenario == 'sparse':
+            # Maximize reach: high gossip, low suppression, conservative power
+            self.v6_cfg['gossip_probability'] = 0.4
+            self.v6_cfg['relay_redundancy_threshold'] = 5
+            self.v6_cfg['echo_min_score'] = 0.1  # rarely suppress via echo
+            self.v6_cfg['density_threshold'] = 10  # never trigger density suppression
+            self.v6_cfg['power_control_margin'] = 5  # less margin = more reach
+            self.v6_cfg['route_expiry_ms'] = 120000  # longer routes in sparse
+        elif scenario == 'congested':
+            # Minimize TX: strict MPR, low gossip, aggressive suppression
+            self.v6_cfg['gossip_probability'] = 0.05
+            self.v6_cfg['relay_redundancy_threshold'] = 2
+            self.v6_cfg['echo_min_score'] = 0.4
+            self.v6_cfg['density_threshold'] = 4
+            self.v6_cfg['power_control_margin'] = 15
+            self.v6_cfg['route_expiry_ms'] = 30000
+        elif scenario == 'dense':
+            # Balance: moderate gossip, container aggregation active
+            self.v6_cfg['gossip_probability'] = 0.15
+            self.v6_cfg['relay_redundancy_threshold'] = 3
+            self.v6_cfg['echo_min_score'] = 0.3
+            self.v6_cfg['density_threshold'] = 6
+            self.v6_cfg['power_control_margin'] = 10
+            self.v6_cfg['route_expiry_ms'] = 60000
+        else:  # standard
+            # Default GA v1 optimal
+            self.v6_cfg['gossip_probability'] = 0.26
+            self.v6_cfg['relay_redundancy_threshold'] = 4
+            self.v6_cfg['echo_min_score'] = 0.48
+            self.v6_cfg['density_threshold'] = 6
+            self.v6_cfg['power_control_margin'] = 7
+            self.v6_cfg['route_expiry_ms'] = 30000
 
     def v6_elect_cluster_head(self):
         """LEACH-style cluster head election based on neighbor count + reliability.
