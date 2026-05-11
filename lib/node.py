@@ -563,26 +563,39 @@ class MeshNode:
                             if not existing or weighted_rssi > existing_weighted or (self.env.now - existing.get('time', 0)) > route_expiry:
                                 self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
 
-                        # Expire stale neighbors
-                        nb_expiry = self.v6_cfg['neighbor_expiry_ms']
-                        stale = [nid for nid, nb in self.v6_neighbors.items() if (self.env.now - nb['lastSeen']) > nb_expiry]
-                        for nid in stale:
-                            del self.v6_neighbors[nid]
+                        # Expire stale neighbors (batch: every 50 observations to save CPU)
+                        total_obs_quick = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
+                        if total_obs_quick % 50 == 0:
+                            nb_expiry = self.v6_cfg['neighbor_expiry_ms']
+                            stale = [nid for nid, nb in self.v6_neighbors.items() if (self.env.now - nb['lastSeen']) > nb_expiry]
+                            for nid in stale:
+                                del self.v6_neighbors[nid]
 
                         # Track which relayers we've heard for this specific packet
                         if p.seq not in self.v6_pkt_relayers:
                             self.v6_pkt_relayers[p.seq] = set()
                         self.v6_pkt_relayers[p.seq].add(p.txNodeId)
 
+                        # Prune stale pkt_relayers (keep max 200 entries)
+                        if len(self.v6_pkt_relayers) > 200:
+                            oldest = sorted(self.v6_pkt_relayers.keys())[:100]
+                            for k in oldest:
+                                del self.v6_pkt_relayers[k]
+
+                        # Prune stale alt_routes and neighbors_of_neighbor
+                        if len(self.v6_alt_routes) > 50:
+                            self.v6_alt_routes = dict(list(self.v6_alt_routes.items())[-30:])
+                        if len(self.v6_neighbors_of_neighbor) > 50:
+                            self.v6_neighbors_of_neighbor = dict(list(self.v6_neighbors_of_neighbor.items())[-30:])
+
                         # Periodically: adapt parameters, recompute MPR + cluster head
                         total_obs = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
                         self.v6_adapt_to_scenario()
                         if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
+                            self.v6_compute_mpr()
                             self.v6_elect_cluster_head()
                             if self.v6_is_cluster_head:
                                 self.v6_assign_tdma_slots()
-                        if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
-                            self.v6_compute_mpr()
 
                         # Forward decision: aggregate broadcasts, forward DMs directly
                         if not self.is_client_mute:
@@ -703,10 +716,11 @@ class MeshNode:
                 self.packets.append(pNew)
                 self.env.process(self.transmit(pNew))
                 self.v6_coded_packets_sent += 1
-                pPartner = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow, sf_override=sf_opt, implicit_header=relay_implicit_header, preamble_symbols=relay_preamble)
-                pPartner.hopLimit = buf_pkt.hopLimit - 1
-                # Don't add to packets list (no extra TX!) but process reception
-                self.env.process(self.transmit(pPartner))
+                # XOR partner info is carried in pNew metadata — receivers who
+                # have buf_pkt can extract packet from the coded TX.
+                # NO second transmit — the whole point of XOR coding is 1 TX for 2 messages.
+                # The partner's delivery is implicit: any node that received buf_pkt
+                # earlier can decode the new packet from the XOR-coded transmission.
             else:
                 # No coding partner — buffer for a short time, then send solo
                 self.v6_coding_buffer.append((packet, rssi, self.env.now))
@@ -733,7 +747,7 @@ class MeshNode:
             # alternative path at different SF. SF orthogonality prevents self-collision.
             if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_alt_routes:
                 alt_routes = self.v6_alt_routes[packet.destId]
-                if alt_routes and sf_opt != self.conf.current_preset['sf']:
+                if alt_routes and sf_opt is not None and sf_opt != self.conf.current_preset['sf']:
                     # We're already using non-default SF on primary path.
                     # Send duplicate on alt path at default SF (different = orthogonal).
                     alt = alt_routes[0]
@@ -862,14 +876,15 @@ class MeshNode:
     def v6_adapt_to_scenario(self):
         """Auto-detect network scenario and adapt parameters.
 
-        Detection signals:
-        - active_neighbors: sparse (<5) / standard (5-15) / dense (>15)
-        - channel_util: idle (<10%) / normal (10-25%) / congested (>25%)
-        - mobility: static (no position changes) / mobile (frequent changes)
-
-        Each scenario gets optimized parameters from GA profiles.
+        ONLY adapts if no GA genome was provided (V6_PARAMS empty).
+        If GA params are set, they take precedence — the GA already
+        optimized for multi-scenario robustness.
         """
-        if self.env.now - self.v6_last_adaptation < 30000:  # adapt every 30s max
+        # Skip adaptation if GA genome is loaded — GA params take priority
+        if getattr(self.conf, 'V6_PARAMS', {}):
+            return
+
+        if self.env.now - self.v6_last_adaptation < 30000:
             return
         self.v6_last_adaptation = self.env.now
 
