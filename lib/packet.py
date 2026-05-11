@@ -4,7 +4,7 @@ NODENUM_BROADCAST = 0xFFFFFFFF
 
 
 class MeshPacket:
-    def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, txpow_override=None, sf_override=None):
+    def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, txpow_override=None, sf_override=None, implicit_header=False, preamble_symbols=None):
         """Create a new packet and calculate which nodes sense and receive it
 
         Arguments:
@@ -47,6 +47,10 @@ class MeshPacket:
         self.bw = self.conf.current_preset["bw"]
         self.freq = self.conf.FREQ
         self.tx_node = next(n for n in nodes if n.nodeid == self.txNodeId)
+        # SF-specific sensitivity (lower SF needs stronger signal)
+        SF_SENSITIVITY = {7: -118.5, 8: -124.0, 9: -126.5, 10: -129.0, 11: -131.5, 12: -137.0}
+        pkt_sensitivity = SF_SENSITIVITY.get(self.sf, self.conf.current_preset["sensitivity"])
+        pkt_cad_threshold = pkt_sensitivity - 3  # CAD is 3dB less than sensitivity
         # calculate reception at all other nodes
         for rx_node in nodes:
             if rx_node.nodeid == self.txNodeId:
@@ -55,13 +59,17 @@ class MeshPacket:
             offset = self.conf.LINK_OFFSET[(self.txNodeId, rx_node.nodeid)]
             self.LplAtN[rx_node.nodeid] = estimate_path_loss(self.conf, dist_3d, self.freq, self.tx_node.position.z, rx_node.position.z) + offset
             self.rssiAtN[rx_node.nodeid] = self.txpow + self.tx_node.antennaGain + rx_node.antennaGain - self.LplAtN[rx_node.nodeid]
-            if self.rssiAtN[rx_node.nodeid] >= self.conf.current_preset["sensitivity"]:
+            if self.rssiAtN[rx_node.nodeid] >= pkt_sensitivity:
                 self.sensedByN[rx_node.nodeid] = True
-            if self.rssiAtN[rx_node.nodeid] >= self.conf.current_preset["cad_threshold"]:
+            if self.rssiAtN[rx_node.nodeid] >= pkt_cad_threshold:
                 self.detectedByN[rx_node.nodeid] = True
 
         self.packetLen = plen
-        self.timeOnAir = airtime(self.conf, self.sf, self.cr, self.packetLen, self.bw)
+        self.implicit_header = implicit_header
+        self.preamble_symbols = preamble_symbols
+        self.timeOnAir = airtime(self.conf, self.sf, self.cr, self.packetLen, self.bw,
+                                 implicit_header=self.implicit_header,
+                                 preamble_symbols=self.preamble_symbols)
         self.startTime = 0
         self.endTime = 0
 

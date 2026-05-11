@@ -89,9 +89,9 @@ def is_channel_active(node, env):
     return False
 
 
-def airtime(conf, sf, cr, pl, bw):
+def airtime(conf, sf, cr, pl, bw, implicit_header=False, preamble_symbols=None):
     pl = pl + conf.HEADERLENGTH  # add Meshtastic header length
-    H = 0  # implicit header disabled (H=0) or not (H=1)
+    H = 1 if implicit_header else 0  # implicit header: skip LoRa header for known configs
     DE = 0  # low data rate optimization enabled (=1) or not (=0)
 
     if bw == 125e3 and sf in [11, 12]:  # low data rate optimization
@@ -99,8 +99,9 @@ def airtime(conf, sf, cr, pl, bw):
     if sf == 6:  # can only have implicit header with SF6
         H = 1
 
+    npream = preamble_symbols if preamble_symbols is not None else conf.NPREAM
     Tsym = (2.0 ** sf) / bw
-    Tpream = (conf.NPREAM + 4.25) * Tsym
+    Tpream = (npream + 4.25) * Tsym
     payloadSymbNB = 8 + max(math.ceil((8.0 * pl - 4.0 * sf + 28 + 16 - 20 * H) / (4.0 * (sf - 2 * DE))) * (cr + 4), 0)
     Tpayload = payloadSymbNB * Tsym
 
