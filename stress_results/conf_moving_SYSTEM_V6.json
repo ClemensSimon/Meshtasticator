@@ -1,0 +1,1 @@
+{"route_expiry_ms": 30000, "neighbor_expiry_ms": 160000, "echo_timeout_ms": 3300, "echo_min_score": 0.48, "echo_min_observations": 9, "mpr_recompute_interval": 117, "relay_redundancy_threshold": 4, "gossip_probability": 0.26, "defer_slot_multiplier": 1.1, "rssi_margin_suppress": 40, "power_control_margin": 7, "density_threshold": 6}
