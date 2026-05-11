@@ -154,6 +154,14 @@ class MeshNode:
             self.v6_routes = {}       # {origNodeId: {nextHop: nodeId, rssi: float, time: float}}
             self.v6_neighbors = {}    # {nodeId: {rssi: float, lastSeen: float, relayCount: int}}
             self.v6_pkt_relayers = {} # {seq: set of nodeIds that relayed this packet}
+            # MPR: nodes I've designated as my relays (computed from 2-hop topology)
+            self.v6_mpr_set = set()           # set of nodeIds that are my MPRs
+            self.v6_am_mpr_for = set()        # set of nodeIds that selected ME as their MPR
+            self.v6_neighbors_of_neighbor = {} # {neighborId: set of their neighborIds} — 2-hop info
+            # ECHO backbone: track whether my rebroadcasts get "echoed" by downstream
+            self.v6_echo_pending = {}  # {seq: timestamp} — packets I rebroadcasted, waiting for echo
+            self.v6_echo_score = 0.5   # 0..1 — rolling score, high = I'm on backbone
+            self.v6_echo_history = []  # list of (timestamp, was_echoed) for rolling average
 
         self.env.process(self.track_channel_utilization())
         if not self.is_repeater:  # repeaters don't generate messages themselves
@@ -451,7 +459,7 @@ class MeshNode:
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
                     elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6:
-                        # System V6: passive route learning + intelligent forwarding
+                        # System V6: passive route learning + MPR + ECHO backbone
                         rssi = p.rssiAtN[self.nodeid] if self.nodeid < len(p.rssiAtN) else -140
 
                         # Learn neighbors: track every node we hear directly
@@ -463,6 +471,23 @@ class MeshNode:
                             nb['lastSeen'] = self.env.now
                             nb['relayCount'] += 1
 
+                        # Learn 2-hop topology: if origTx != tx, then tx is a neighbor of origTx
+                        if p.origTxNodeId != p.txNodeId:
+                            if p.txNodeId not in self.v6_neighbors_of_neighbor:
+                                self.v6_neighbors_of_neighbor[p.txNodeId] = set()
+                            self.v6_neighbors_of_neighbor[p.txNodeId].add(p.origTxNodeId)
+                            # Reverse: origTx knows txNodeId
+                            if p.origTxNodeId not in self.v6_neighbors_of_neighbor:
+                                self.v6_neighbors_of_neighbor[p.origTxNodeId] = set()
+                            self.v6_neighbors_of_neighbor[p.origTxNodeId].add(p.txNodeId)
+
+                        # ECHO detection: did someone relay a packet I previously rebroadcasted?
+                        if p.seq in self.v6_echo_pending:
+                            # I rebroadcasted this seq, now I hear it from someone else = ECHO!
+                            del self.v6_echo_pending[p.seq]
+                            self.v6_echo_history.append((self.env.now, True))
+                            self.v6_update_echo_score()
+
                         # Learn routes: best relay for each origin
                         if p.origTxNodeId not in self.v6_routes or rssi > self.v6_routes[p.origTxNodeId].get('rssi', -999):
                             self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
@@ -471,6 +496,11 @@ class MeshNode:
                         if p.seq not in self.v6_pkt_relayers:
                             self.v6_pkt_relayers[p.seq] = set()
                         self.v6_pkt_relayers[p.seq].add(p.txNodeId)
+
+                        # Recompute MPR set periodically (every 50 new neighbor observations)
+                        total_obs = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
+                        if total_obs % 50 == 0 and len(self.v6_neighbors) >= 3:
+                            self.v6_compute_mpr()
 
                         # Forward decision with deferred rebroadcast
                         if not self.is_client_mute:
@@ -525,54 +555,111 @@ class MeshNode:
             pNew.hopLimit = packet.hopLimit - 1
             self.packets.append(pNew)
             self.env.process(self.transmit(pNew))
+            # ECHO: register that we rebroadcasted, wait for echo
+            self.v6_echo_pending[packet.seq] = self.env.now
+            self.env.process(self.v6_echo_timeout(packet.seq, 5000))  # 5s timeout
         else:
-            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-suppressed packet {packet.seq} (relayers={len(self.v6_pkt_relayers.get(packet.seq, set()))})")
+            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-suppressed packet {packet.seq}")
+
+    def v6_echo_timeout(self, seq, timeout_ms):
+        """After timeout, check if echo was received for this seq."""
+        yield self.env.timeout(timeout_ms)
+        self.v6_mark_echo_timeout(seq)
+
+    def v6_compute_mpr(self):
+        """Compute MPR set from passively learned 2-hop topology.
+        Greedy: pick the 1-hop neighbor that covers the most uncovered 2-hop nodes."""
+        my_neighbors = set(self.v6_neighbors.keys())
+        if not my_neighbors:
+            return
+
+        # 2-hop neighbors: neighbors-of-neighbors minus myself and my 1-hop
+        two_hop = set()
+        for nb in my_neighbors:
+            for nb2 in self.v6_neighbors_of_neighbor.get(nb, set()):
+                if nb2 != self.nodeid and nb2 not in my_neighbors:
+                    two_hop.add(nb2)
+
+        # Greedy MPR selection
+        uncovered = set(two_hop)
+        mprs = set()
+        while uncovered:
+            best_nb = None
+            best_cover = 0
+            for nb in my_neighbors:
+                if nb in mprs:
+                    continue
+                cover = len(uncovered & self.v6_neighbors_of_neighbor.get(nb, set()))
+                if cover > best_cover:
+                    best_cover = cover
+                    best_nb = nb
+            if best_nb is None or best_cover == 0:
+                break
+            mprs.add(best_nb)
+            uncovered -= self.v6_neighbors_of_neighbor.get(best_nb, set())
+
+        self.v6_mpr_set = mprs
+        # Notify neighbors they are MPR (in real protocol via HELLO; here via shared state)
+        for nb_id in mprs:
+            for n in self.nodes:
+                if n.nodeid == nb_id and hasattr(n, 'v6_am_mpr_for'):
+                    n.v6_am_mpr_for.add(self.nodeid)
+
+    def v6_update_echo_score(self):
+        """Update rolling ECHO backbone score from recent history."""
+        # Keep last 20 observations
+        if len(self.v6_echo_history) > 20:
+            self.v6_echo_history = self.v6_echo_history[-20:]
+        if not self.v6_echo_history:
+            self.v6_echo_score = 0.5
+            return
+        echoed = sum(1 for _, e in self.v6_echo_history if e)
+        self.v6_echo_score = echoed / len(self.v6_echo_history)
+
+    def v6_mark_echo_timeout(self, seq):
+        """Called after timeout — if echo_pending still has this seq, no echo was heard."""
+        if seq in self.v6_echo_pending:
+            del self.v6_echo_pending[seq]
+            self.v6_echo_history.append((self.env.now, False))
+            self.v6_update_echo_score()
 
     def v6_should_forward(self, packet):
-        """System V6 forwarding decision after deferred wait.
+        """System V6 forwarding with MPR + ECHO backbone.
 
-        By the time this runs, we've had time to observe other relays.
-        Four suppression mechanisms, from strongest to weakest:
+        Decision hierarchy:
+        1. DM with known route → always forward
+        2. MPR check → only forward if I'm an MPR for the sender (or MPR not computed yet)
+        3. ECHO backbone → suppress if my echo score is low (I'm not on backbone)
+        4. Relay redundancy → suppress if 2+ relays already heard
+        5. Default → forward
         """
         seq = packet.seq
         times = self.timesReceived.get(seq, 0)
         relayers = self.v6_pkt_relayers.get(seq, set())
-        rssi = packet.rssiAtN[self.nodeid] if self.nodeid < len(packet.rssiAtN) else -140
-        sensitivity = self.conf.current_preset["sensitivity"]
 
         # DM to a known destination: always forward
         if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
             return True
 
-        # --- 1. Relay redundancy (strongest suppression) ---
-        # If 2+ relays already forwarded this, our area is covered.
-        # After the deferred wait, this set is more populated than before.
+        # --- MPR: only rebroadcast if I'm an MPR for the sending node ---
+        # If MPR sets have been computed and I'm NOT designated as MPR by the sender,
+        # suppress. The sender's MPR set covers all 2-hop neighbors already.
+        if self.v6_am_mpr_for:  # MPR info available
+            if packet.txNodeId not in self.v6_am_mpr_for and times > 1:
+                # I'm not MPR for this sender — suppress
+                return False
+
+        # --- ECHO backbone: suppress if I'm consistently not echoed ---
+        # Low echo score means my rebroadcasts aren't being picked up downstream.
+        # I'm a leaf or redundant relay — save airtime.
+        if len(self.v6_echo_history) >= 5 and self.v6_echo_score < 0.2:
+            return False
+
+        # --- Relay redundancy ---
         if len(relayers) >= 2:
             return False
 
-        # --- 2. Strong RSSI = sender already covers my area ---
-        # If I received with very strong signal (>20dB above sensitivity),
-        # the sender can probably reach most of my neighbors too — I'm redundant.
-        rssi_margin = rssi - sensitivity
-        if rssi_margin > 20 and times > 1 and len(relayers) >= 1:
-            return False
-
-        # --- 3. Route-based suppression ---
-        # If I know a better relay for this origin, and the packet didn't
-        # come from that relay, suppress — the best relay will handle it.
-        if packet.origTxNodeId in self.v6_routes:
-            best = self.v6_routes[packet.origTxNodeId]
-            if packet.txNodeId != best['nextHop'] and times > 1:
-                return False
-
-        # --- 4. Neighbor density ---
-        # In dense areas (5+ active neighbors), suppress after first reception.
-        active_neighbors = sum(1 for nb in self.v6_neighbors.values()
-                               if self.env.now - nb['lastSeen'] < 300000)
-        if active_neighbors >= 4 and times > 1:
-            return False
-
-        # Default: forward (first reception, or sparse network)
+        # Default: forward
         return True
 
     def get_stats(self) -> MeshNodeStats:
