@@ -773,12 +773,22 @@ class MeshNode:
         if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
             return True
 
+        # --- CHANNEL UTILIZATION ADAPTIVE SUPPRESSION ---
+        # When the channel is busy, increase suppression aggressiveness.
+        chan_util = self.channel_utilization_percent()
+        if chan_util > 40:
+            # Emergency: channel near saturation. Only forward first reception of DMs.
+            if packet.destId == 0xFFFFFFFF:
+                return times <= 1  # broadcast: only forward on very first reception
+            return True  # DM: always try
+        elif chan_util > 25:
+            # Congested: strict MPR only, no gossip
+            if self.v6_am_mpr_for and packet.txNodeId not in self.v6_am_mpr_for:
+                return False
+
         # --- SPARSE NETWORK SAFETY ---
-        # If we have very few neighbors, every relay is critical.
-        # Skip aggressive suppression and behave more like managed flooding.
         active_neighbors = len(self.v6_neighbors)
         if active_neighbors <= 5:
-            # Sparse: only suppress exact duplicates, skip all other suppression
             return times <= 2 if active_neighbors <= 2 else times <= 1
 
         # --- MPR: only rebroadcast if I'm an MPR for the sending node ---
