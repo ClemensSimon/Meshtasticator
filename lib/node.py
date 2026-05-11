@@ -718,12 +718,17 @@ class MeshNode:
         if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
             return True
 
+        # --- SPARSE NETWORK SAFETY ---
+        # If we have very few neighbors, every relay is critical.
+        # Skip aggressive suppression and behave more like managed flooding.
+        active_neighbors = len(self.v6_neighbors)
+        if active_neighbors <= 5:
+            # Sparse: only suppress exact duplicates, skip all other suppression
+            return times <= 2 if active_neighbors <= 2 else times <= 1
+
         # --- MPR: only rebroadcast if I'm an MPR for the sending node ---
-        # If MPR sets have been computed and I'm NOT designated as MPR by the sender,
-        # suppress. The sender's MPR set covers all 2-hop neighbors already.
         if self.v6_am_mpr_for:  # MPR info available
             if packet.txNodeId not in self.v6_am_mpr_for and times > 1:
-                # I'm not MPR for this sender — suppress
                 return False
 
         # --- ECHO backbone: suppress if I'm consistently not echoed ---
