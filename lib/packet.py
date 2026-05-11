@@ -70,6 +70,11 @@ class MeshPacket:
         self.ackReceived = False
         self.hopLimit = self.tx_node.hopLimit
 
+        # V6 Security: HMAC authentication flag
+        # In real firmware: HMAC-SHA256 over header fields using channel PSK
+        # In simulation: all legitimate nodes produce authenticated packets
+        self.authenticated = not getattr(self.tx_node, 'is_malicious', False)
+
 
 class MeshMessage:
     def __init__(self, origTxNodeId, destId, genTime, seq):

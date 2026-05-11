@@ -479,37 +479,45 @@ class MeshNode:
                         # System V6: passive route learning + MPR + ECHO backbone
                         rssi = p.rssiAtN[self.nodeid] if self.nodeid < len(p.rssiAtN) else -140
 
-                        # Learn neighbors: track every node we hear directly
-                        if p.txNodeId not in self.v6_neighbors:
-                            self.v6_neighbors[p.txNodeId] = {'rssi': rssi, 'lastSeen': self.env.now, 'relayCount': 1}
-                        else:
-                            nb = self.v6_neighbors[p.txNodeId]
-                            nb['rssi'] = max(nb['rssi'], rssi)
-                            nb['lastSeen'] = self.env.now
-                            nb['relayCount'] += 1
+                        # HMAC: only learn topology from authenticated packets
+                        # Unauthenticated packets are still forwarded (for reach)
+                        # but they cannot poison route tables or MPR sets
+                        is_trusted = getattr(p, 'authenticated', True)
 
-                        # Learn 2-hop topology: if origTx != tx, then tx is a neighbor of origTx
-                        if p.origTxNodeId != p.txNodeId:
+                        # Learn neighbors: only from trusted packets
+                        if is_trusted:
+                            if p.txNodeId not in self.v6_neighbors:
+                                self.v6_neighbors[p.txNodeId] = {'rssi': rssi, 'lastSeen': self.env.now, 'relayCount': 1}
+                            else:
+                                nb = self.v6_neighbors[p.txNodeId]
+                                nb['rssi'] = max(nb['rssi'], rssi)
+                                nb['lastSeen'] = self.env.now
+                                nb['relayCount'] += 1
+                        elif p.txNodeId in self.v6_neighbors:
+                            # Untrusted but known neighbor: update lastSeen only (no RSSI/topology changes)
+                            self.v6_neighbors[p.txNodeId]['lastSeen'] = self.env.now
+
+                        # Learn 2-hop topology: only from trusted packets
+                        if is_trusted and p.origTxNodeId != p.txNodeId:
                             if p.txNodeId not in self.v6_neighbors_of_neighbor:
                                 self.v6_neighbors_of_neighbor[p.txNodeId] = set()
                             self.v6_neighbors_of_neighbor[p.txNodeId].add(p.origTxNodeId)
-                            # Reverse: origTx knows txNodeId
                             if p.origTxNodeId not in self.v6_neighbors_of_neighbor:
                                 self.v6_neighbors_of_neighbor[p.origTxNodeId] = set()
                             self.v6_neighbors_of_neighbor[p.origTxNodeId].add(p.txNodeId)
 
-                        # ECHO detection: did someone relay a packet I previously rebroadcasted?
+                        # ECHO detection: works regardless of trust (observing rebroadcasts)
                         if p.seq in self.v6_echo_pending:
-                            # I rebroadcasted this seq, now I hear it from someone else = ECHO!
                             del self.v6_echo_pending[p.seq]
                             self.v6_echo_history.append((self.env.now, True))
                             self.v6_update_echo_score()
 
-                        # Learn routes: best relay for each origin (with expiry check)
-                        route_expiry = self.v6_cfg['route_expiry_ms']
-                        existing = self.v6_routes.get(p.origTxNodeId)
-                        if not existing or rssi > existing.get('rssi', -999) or (self.env.now - existing.get('time', 0)) > route_expiry:
-                            self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
+                        # Learn routes: only from trusted packets
+                        if is_trusted:
+                            route_expiry = self.v6_cfg['route_expiry_ms']
+                            existing = self.v6_routes.get(p.origTxNodeId)
+                            if not existing or rssi > existing.get('rssi', -999) or (self.env.now - existing.get('time', 0)) > route_expiry:
+                                self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
 
                         # Expire stale neighbors
                         nb_expiry = self.v6_cfg['neighbor_expiry_ms']
