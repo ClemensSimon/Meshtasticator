@@ -4,7 +4,7 @@ NODENUM_BROADCAST = 0xFFFFFFFF
 
 
 class MeshPacket:
-    def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now):
+    def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, txpow_override=None):
         """Create a new packet and calculate which nodes sense and receive it
 
         Arguments:
@@ -20,6 +20,7 @@ class MeshPacket:
         isAck -- this packet is an ACK packet
         requestId -- ID of packet requesting ACK (only valid for ACK packets)
         now -- current sim time when called, always `env.now`
+        txpow_override -- V6 power control: if set, use this TX power instead of PTX
         """
         self.conf = conf
         self.origTxNodeId = origTxNodeId
@@ -31,7 +32,7 @@ class MeshPacket:
         self.requestId = requestId
         self.genTime = genTime
         self.now = now
-        self.txpow = self.conf.PTX
+        self.txpow = txpow_override if txpow_override is not None else self.conf.PTX
         self.LplAtN = [0 for _ in range(self.conf.NR_NODES)]
         self.rssiAtN = [0 for _ in range(self.conf.NR_NODES)]
         self.sensedByN = [False for _ in range(self.conf.NR_NODES)]

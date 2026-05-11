@@ -151,7 +151,9 @@ class MeshNode:
 
         # System V6: passive route learning state
         if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6:
-            self.v6_routes = {}  # {origNodeId: {nextHop: nodeId, rssi: float, time: float}}
+            self.v6_routes = {}       # {origNodeId: {nextHop: nodeId, rssi: float, time: float}}
+            self.v6_neighbors = {}    # {nodeId: {rssi: float, lastSeen: float, relayCount: int}}
+            self.v6_pkt_relayers = {} # {seq: set of nodeIds that relayed this packet}
 
         self.env.process(self.track_channel_utilization())
         if not self.is_repeater:  # repeaters don't generate messages themselves
@@ -450,56 +452,128 @@ class MeshNode:
                             self.env.process(self.transmit(pNew))
                     elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6:
                         # System V6: passive route learning + intelligent forwarding
-                        # Learn: remember which neighbor relayed this origin
-                        rssi = p.rssiAtN[self.nodeid] if self.nodeid in p.rssiAtN else -140
+                        rssi = p.rssiAtN[self.nodeid] if self.nodeid < len(p.rssiAtN) else -140
+
+                        # Learn neighbors: track every node we hear directly
+                        if p.txNodeId not in self.v6_neighbors:
+                            self.v6_neighbors[p.txNodeId] = {'rssi': rssi, 'lastSeen': self.env.now, 'relayCount': 1}
+                        else:
+                            nb = self.v6_neighbors[p.txNodeId]
+                            nb['rssi'] = max(nb['rssi'], rssi)
+                            nb['lastSeen'] = self.env.now
+                            nb['relayCount'] += 1
+
+                        # Learn routes: best relay for each origin
                         if p.origTxNodeId not in self.v6_routes or rssi > self.v6_routes[p.origTxNodeId].get('rssi', -999):
                             self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
-                        # Forward decision: suppress if we already heard this from a better relay
-                        should_forward = self.v6_should_forward(p)
-                        if should_forward and not self.is_client_mute:
-                            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-forwards packet {p.seq} (rssi={rssi:.1f})")
-                            pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now)
-                            pNew.hopLimit = p.hopLimit - 1
-                            self.packets.append(pNew)
-                            self.env.process(self.transmit(pNew))
+
+                        # Track which relayers we've heard for this specific packet
+                        if p.seq not in self.v6_pkt_relayers:
+                            self.v6_pkt_relayers[p.seq] = set()
+                        self.v6_pkt_relayers[p.seq].add(p.txNodeId)
+
+                        # Forward decision with deferred rebroadcast
+                        if not self.is_client_mute:
+                            self.env.process(self.v6_deferred_forward(p, rssi))
                 else:
                     self.droppedByDelay += 1
 
-    def v6_should_forward(self, packet):
-        """System V6 forwarding decision: passive learning + intelligent suppression.
+    def v6_deferred_forward(self, packet, rssi):
+        """Wait briefly, then decide whether to rebroadcast.
 
-        Key idea: only forward if this node adds value to the delivery.
-        - First time seeing this packet? Forward (like managed flood).
-        - Already seen from a better relay? Suppress (saves TX).
-        - Destination known in route table? Forward only if we're on the path.
+        Key improvement: by waiting ~1 slot time, we observe whether other relays
+        have already forwarded the packet. This dramatically improves suppression
+        in dense networks where multiple nodes hear the same packet simultaneously.
+        """
+        from lib.phy import get_current_slot_time
+        # Wait 1-2 slot times (proportional to how strong the signal was —
+        # nodes with weaker signals wait longer, giving closer nodes priority)
+        sensitivity = self.conf.current_preset["sensitivity"]
+        rssi_range = abs(sensitivity)  # e.g., 131.5
+        rssi_normalized = max(0, min(1, (rssi - sensitivity) / rssi_range))
+        # Strong signal = short wait (this node is close, good relay)
+        # Weak signal = long wait (far away, likely redundant)
+        slot = get_current_slot_time()
+        wait_ms = slot * (1.5 - rssi_normalized)  # 0.5-1.5 slots
+        yield self.env.timeout(wait_ms)
+
+        # Now check — did other relays already handle it?
+        should_forward = self.v6_should_forward(packet)
+        if should_forward:
+            # V6 Power Control: if we know the next hop, reduce TX power
+            # to just reach it (+ margin). Fewer nodes hear it = less collisions.
+            txpow = None  # None = full power (default)
+            target_hop = None
+            # Power control ONLY for unicast (DM) with known route — not for broadcasts
+            if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
+                target_hop = self.v6_routes[packet.destId]['nextHop']
+
+            if target_hop is not None and target_hop in self.v6_neighbors:
+                # Calculate minimum TX power to reach target with 10dB margin
+                nb_rssi = self.v6_neighbors[target_hop]['rssi']
+                # rssi = txpow + gains - pathLoss → pathLoss = conf.PTX + gains - rssi
+                path_loss = self.conf.PTX - nb_rssi  # approximate (ignoring antenna gains for simplicity)
+                sensitivity = self.conf.current_preset["sensitivity"]
+                margin = 10  # dB safety margin
+                min_txpow = sensitivity + path_loss + margin
+                # Clamp between 5 dBm (minimum useful) and full power
+                txpow = max(5, min(self.conf.PTX, min_txpow))
+                logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-power-control: {self.conf.PTX}dBm -> {txpow:.0f}dBm for hop {target_hop}")
+
+            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-forwards packet {packet.seq} after {wait_ms:.0f}ms defer")
+            pNew = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId, self.nodeid, packet.packetLen, packet.seq, packet.genTime, packet.wantAck, False, None, self.env.now, txpow_override=txpow)
+            pNew.hopLimit = packet.hopLimit - 1
+            self.packets.append(pNew)
+            self.env.process(self.transmit(pNew))
+        else:
+            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-suppressed packet {packet.seq} (relayers={len(self.v6_pkt_relayers.get(packet.seq, set()))})")
+
+    def v6_should_forward(self, packet):
+        """System V6 forwarding decision after deferred wait.
+
+        By the time this runs, we've had time to observe other relays.
+        Four suppression mechanisms, from strongest to weakest:
         """
         seq = packet.seq
         times = self.timesReceived.get(seq, 0)
+        relayers = self.v6_pkt_relayers.get(seq, set())
+        rssi = packet.rssiAtN[self.nodeid] if self.nodeid < len(packet.rssiAtN) else -140
+        sensitivity = self.conf.current_preset["sensitivity"]
 
-        # First reception: always forward (we're the first relay to hear it)
-        if times <= 1:
-            return True
-
-        # If we know a route to the destination, check if we're useful
+        # DM to a known destination: always forward
         if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
-            # We know how to reach the destination — we're valuable as a relay
             return True
 
-        # If we know the originator, check if we received it from the best path
-        if packet.origTxNodeId in self.v6_routes:
-            best_relay = self.v6_routes[packet.origTxNodeId]['nextHop']
-            if packet.txNodeId == best_relay:
-                # Came from our best known relay — forward it
-                return True
-            # Came from a different relay — suppress (the best relay will handle it)
+        # --- 1. Relay redundancy (strongest suppression) ---
+        # If 2+ relays already forwarded this, our area is covered.
+        # After the deferred wait, this set is more populated than before.
+        if len(relayers) >= 2:
             return False
 
-        # Routers/repeaters: allow up to 2 rebroadcasts (like managed flood)
-        if self.is_router or self.is_repeater:
-            return times <= 2
+        # --- 2. Strong RSSI = sender already covers my area ---
+        # If I received with very strong signal (>20dB above sensitivity),
+        # the sender can probably reach most of my neighbors too — I'm redundant.
+        rssi_margin = rssi - sensitivity
+        if rssi_margin > 20 and times > 1 and len(relayers) >= 1:
+            return False
 
-        # Clients: suppress after first rebroadcast
-        return times <= 1
+        # --- 3. Route-based suppression ---
+        # If I know a better relay for this origin, and the packet didn't
+        # come from that relay, suppress — the best relay will handle it.
+        if packet.origTxNodeId in self.v6_routes:
+            best = self.v6_routes[packet.origTxNodeId]
+            if packet.txNodeId != best['nextHop'] and times > 1:
+                return False
+
+        # --- 4. Neighbor density ---
+        # In dense areas (5+ active neighbors), suppress after first reception.
+        active_neighbors = sum(1 for nb in self.v6_neighbors.values()
+                               if self.env.now - nb['lastSeen'] < 300000)
+        if active_neighbors >= 4 and times > 1:
+            return False
+
+        # Default: forward (first reception, or sparse network)
+        return True
 
     def get_stats(self) -> MeshNodeStats:
         """Get internally-tracked statistics/data. Only valid after the sim ends.
