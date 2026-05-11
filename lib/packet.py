@@ -4,7 +4,7 @@ NODENUM_BROADCAST = 0xFFFFFFFF
 
 
 class MeshPacket:
-    def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, txpow_override=None):
+    def __init__(self, conf, nodes, origTxNodeId, destId, txNodeId, plen, seq, genTime, wantAck, isAck, requestId, now, txpow_override=None, sf_override=None):
         """Create a new packet and calculate which nodes sense and receive it
 
         Arguments:
@@ -42,7 +42,7 @@ class MeshPacket:
         self.onAirToN = [True for _ in range(self.conf.NR_NODES)]
 
         # configuration values
-        self.sf = self.conf.current_preset["sf"]
+        self.sf = sf_override if sf_override is not None else self.conf.current_preset["sf"]
         self.cr = self.conf.current_preset["cr"]
         self.bw = self.conf.current_preset["bw"]
         self.freq = self.conf.FREQ

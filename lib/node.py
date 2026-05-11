@@ -598,6 +598,21 @@ class MeshNode:
                 txpow = max(5, min(self.conf.PTX, min_txpow))
                 logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-power-control: {self.conf.PTX}dBm -> {txpow:.0f}dBm for hop {target_hop}")
 
+            # Adaptive SF: for unicast DMs with known route, use lowest SF that reaches the target
+            # Lower SF = shorter airtime = less channel occupation
+            sf_opt = None
+            if target_hop is not None and target_hop in self.v6_neighbors:
+                nb_rssi = self.v6_neighbors[target_hop]['rssi']
+                # SF-sensitivity table (BW=250kHz, approximate)
+                sf_sens = [(7, -118.5), (8, -124.0), (9, -126.5), (10, -129.0), (11, -131.5)]
+                margin = self.v6_cfg['power_control_margin']
+                for sf, sens in sf_sens:
+                    if nb_rssi >= sens + margin:
+                        sf_opt = sf
+                        break  # lowest SF that works
+                if sf_opt and sf_opt < self.conf.current_preset['sf']:
+                    logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-SF-adapt: SF{self.conf.current_preset['sf']} -> SF{sf_opt} for hop {target_hop} (RSSI {nb_rssi:.0f})")
+
             # Network Coding: check if we can XOR this with a buffered packet
             coding_partner = None
             for i, (buf_pkt, buf_rssi, buf_time) in enumerate(self.v6_coding_buffer):
@@ -612,7 +627,7 @@ class MeshNode:
                 logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-XOR-coded packets {packet.seq}+{buf_pkt.seq}")
                 # Send the current packet (counts as 1 TX but delivers 2 messages)
                 # Recipients who have buf_pkt can extract packet, and vice versa
-                pNew = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId, self.nodeid, packet.packetLen, packet.seq, packet.genTime, packet.wantAck, False, None, self.env.now, txpow_override=txpow)
+                pNew = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId, self.nodeid, packet.packetLen, packet.seq, packet.genTime, packet.wantAck, False, None, self.env.now, txpow_override=txpow, sf_override=sf_opt)
                 pNew.hopLimit = packet.hopLimit - 1
                 # Mark as coded: the second packet's info piggybacks on this TX
                 pNew._xor_partner_seq = buf_pkt.seq
@@ -621,7 +636,7 @@ class MeshNode:
                 self.env.process(self.transmit(pNew))
                 self.v6_coded_packets_sent += 1
                 # Also simulate the partner delivery (receivers who have the first extract the second)
-                pPartner = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow)
+                pPartner = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow, sf_override=sf_opt)
                 pPartner.hopLimit = buf_pkt.hopLimit - 1
                 # Don't add to packets list (no extra TX!) but process reception
                 self.env.process(self.transmit(pPartner))
@@ -635,7 +650,7 @@ class MeshNode:
                 # If buffer is getting full, flush oldest
                 if len(self.v6_coding_buffer) > 5:
                     flush_pkt, _, _ = self.v6_coding_buffer.pop(0)
-                    pFlush = MeshPacket(self.conf, self.nodes, flush_pkt.origTxNodeId, flush_pkt.destId, self.nodeid, flush_pkt.packetLen, flush_pkt.seq, flush_pkt.genTime, flush_pkt.wantAck, False, None, self.env.now, txpow_override=txpow)
+                    pFlush = MeshPacket(self.conf, self.nodes, flush_pkt.origTxNodeId, flush_pkt.destId, self.nodeid, flush_pkt.packetLen, flush_pkt.seq, flush_pkt.genTime, flush_pkt.wantAck, False, None, self.env.now, txpow_override=txpow, sf_override=sf_opt)
                     pFlush.hopLimit = flush_pkt.hopLimit - 1
                     self.packets.append(pFlush)
                     self.env.process(self.transmit(pFlush))
@@ -687,7 +702,7 @@ class MeshNode:
         for i, (buf_pkt, _, _) in enumerate(self.v6_coding_buffer):
             if buf_pkt.seq == seq:
                 self.v6_coding_buffer.pop(i)
-                pNew = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow)
+                pNew = MeshPacket(self.conf, self.nodes, buf_pkt.origTxNodeId, buf_pkt.destId, self.nodeid, buf_pkt.packetLen, buf_pkt.seq, buf_pkt.genTime, buf_pkt.wantAck, False, None, self.env.now, txpow_override=txpow, sf_override=None)
                 pNew.hopLimit = buf_pkt.hopLimit - 1
                 self.packets.append(pNew)
                 self.env.process(self.transmit(pNew))
