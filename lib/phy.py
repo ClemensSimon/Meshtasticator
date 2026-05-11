@@ -59,9 +59,9 @@ def check_collision(conf, env, packet, rx_nodeId, packetsAtN):
 
 
 def frequency_collision(p1, p2):
-    if abs(p1.freq - p2.freq) <= 120 and (p1.bw == 500 or p2.freq == 500):
+    if abs(p1.freq - p2.freq) <= 120 and (p1.bw == 500 or p2.bw == 500):
         return True
-    elif abs(p1.freq - p2.freq) <= 60 and (p1.bw == 250 or p2.freq == 250):
+    elif abs(p1.freq - p2.freq) <= 60 and (p1.bw == 250 or p2.bw == 250):
         return True
     elif abs(p1.freq - p2.freq) <= 30:
         return True
