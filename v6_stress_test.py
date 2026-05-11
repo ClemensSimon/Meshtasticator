@@ -10,6 +10,12 @@ Tests V6 vs Managed Flood under each stress condition.
 """
 
 import subprocess, json, time, os, sys
+_CNW = 0x08000000 if sys.platform == "win32" else 0
+_SI = None
+if sys.platform == "win32":
+    _SI = subprocess.STARTUPINFO()
+    _SI.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    _SI.wShowWindow = 0
 
 PYTHON = sys.executable
 RESULTS_DIR = 'stress_results'
@@ -27,7 +33,7 @@ def run(nr_nodes, router, hops, simtime, period, extra_conf=None, label=''):
         cmd.append(conf_file)
 
     try:
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=900, creationflags=_CNW, startupinfo=_SI)
         if out.returncode == 0 and out.stdout.strip():
             return json.loads(out.stdout.strip().split('\n')[-1])
     except Exception as e:

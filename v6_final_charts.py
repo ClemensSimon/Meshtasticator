@@ -2,6 +2,12 @@
 """Final validation: run all scenarios, collect data, generate publication-quality charts."""
 
 import subprocess, json, os, sys, time
+_CNW = 0x08000000 if sys.platform == "win32" else 0
+_SI = None
+if sys.platform == "win32":
+    _SI = subprocess.STARTUPINFO()
+    _SI.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    _SI.wShowWindow = 0
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -16,7 +22,7 @@ def run(nr_nodes, router, hops, simtime, period, genome_file=None, label=''):
     if genome_file and router == 'SYSTEM_V6':
         cmd.append(genome_file)
     try:
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=900, creationflags=_CNW, startupinfo=_SI)
         if out.returncode == 0 and out.stdout.strip():
             data = json.loads(out.stdout.strip().split('\n')[-1])
             # Save individual result
@@ -63,7 +69,7 @@ def main():
             fname = os.path.join(RESULTS_DIR, f'{tag}_{rt}.json')
             fout = open(fname, 'w')
             ferr = open(os.path.join(RESULTS_DIR, f'{tag}_{rt}.log'), 'w')
-            p = subprocess.Popen(cmd, stdout=fout, stderr=ferr)
+            p = subprocess.Popen(cmd, stdout=fout, stderr=ferr, creationflags=_CNW, startupinfo=_SI)
             procs.append({'proc': p, 'tag': f'{tag}_{rt}', 'fout': fout, 'ferr': ferr, 'fname': fname, 'name': name, 'rt': rt})
 
     print(f"Launched {len(procs)} simulations in parallel...")

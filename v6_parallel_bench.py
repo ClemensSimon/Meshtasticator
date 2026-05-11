@@ -7,6 +7,12 @@ Generates comparison plots after all runs complete.
 """
 
 import subprocess, json, time, os, sys
+_CNW = 0x08000000 if sys.platform == "win32" else 0
+_SI = None
+if sys.platform == "win32":
+    _SI = subprocess.STARTUPINFO()
+    _SI.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    _SI.wShowWindow = 0
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -29,7 +35,7 @@ def run_all(matrix, simtime_s=3600, period_s=30):
         cmd = [PYTHON, 'v6_run_one.py', str(nr), rt, str(hl), str(simtime_s), str(period_s)]
         fout = open(outfile, 'w')
         ferr = open(errfile, 'w')
-        p = subprocess.Popen(cmd, stdout=fout, stderr=ferr)
+        p = subprocess.Popen(cmd, stdout=fout, stderr=ferr, creationflags=_CNW, startupinfo=_SI)
         procs.append({'proc': p, 'tag': tag, 'fout': fout, 'ferr': ferr, 'outfile': outfile, 'errfile': errfile})
         print(f'  Launched: {tag} (PID {p.pid})')
 

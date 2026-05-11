@@ -4,6 +4,14 @@ import subprocess, json, time, os, sys, random, copy, traceback, uuid
 
 PYTHON = sys.executable
 
+# Windows: hide subprocess windows
+_CREATE_NO_WINDOW = 0x08000000 if sys.platform == 'win32' else 0
+_STARTUPINFO = None
+if sys.platform == 'win32':
+    _STARTUPINFO = subprocess.STARTUPINFO()
+    _STARTUPINFO.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    _STARTUPINFO.wShowWindow = 0  # SW_HIDE
+
 GENOME_SPEC = [
     ('route_expiry_ms',       30000,  600000, 'int'),
     ('neighbor_expiry_ms',    30000,  600000, 'int'),
@@ -60,7 +68,8 @@ def run_one(nodes, router, hops, simtime, period, genome_file=None):
     if genome_file and router == 'SYSTEM_V6':
         cmd.append(genome_file)
     try:
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=300,
+                             creationflags=_CREATE_NO_WINDOW, startupinfo=_STARTUPINFO)
         if out.returncode == 0 and out.stdout.strip():
             lines = out.stdout.strip().split('\n')
             for line in reversed(lines):

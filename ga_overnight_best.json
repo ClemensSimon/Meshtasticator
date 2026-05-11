@@ -1,0 +1,37 @@
+{
+  "genome": {
+    "route_expiry_ms": 83354,
+    "neighbor_expiry_ms": 551870,
+    "echo_timeout_ms": 10901,
+    "echo_min_score": 0.328,
+    "echo_min_observations": 7,
+    "mpr_recompute_interval": 34,
+    "relay_redundancy_threshold": 3,
+    "gossip_probability": 0.237,
+    "defer_slot_multiplier": 2.377,
+    "rssi_margin_suppress": 19,
+    "power_control_margin": 9,
+    "density_threshold": 9
+  },
+  "score": 96.96613012032792,
+  "details": [
+    [
+      "standard",
+      99.36458480747771,
+      30.749464668094216,
+      36.36363636363637
+    ],
+    [
+      "dense",
+      125.44292834906699,
+      33.22259136212624,
+      26.022514071294562
+    ],
+    [
+      "sparse",
+      96.96613012032792,
+      22.607489597780862,
+      39.9848828420257
+    ]
+  ]
+}

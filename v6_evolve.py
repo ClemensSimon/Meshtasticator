@@ -10,6 +10,12 @@ Usage:
 """
 
 import subprocess, json, time, os, sys, random, copy, math, argparse
+_CNW = 0x08000000 if sys.platform == "win32" else 0
+_SI = None
+if sys.platform == "win32":
+    _SI = subprocess.STARTUPINFO()
+    _SI.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    _SI.wShowWindow = 0
 
 PYTHON = sys.executable
 RESULTS_DIR = 'ga_results'
@@ -117,7 +123,7 @@ def run_simulation(genome, nr_nodes, simtime_s=1800, period_s=30, hop_limit=3):
         if rt == 'SYSTEM_V6':
             cmd.append(genome_file)
         try:
-            out = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=600, creationflags=_CNW, startupinfo=_SI)
             if out.returncode == 0 and out.stdout.strip():
                 data = json.loads(out.stdout.strip().split('\n')[-1])
                 results[rt] = data
