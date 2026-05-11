@@ -4,6 +4,7 @@ class Config:
 
     class ROUTER_TYPE(Enum):
         MANAGED_FLOOD = 'MANAGED_FLOOD'
+        SYSTEM_V6 = 'SYSTEM_V6'
 
     def __init__(self):
         self.MODEL = 5  # Path loss model to use (see README)

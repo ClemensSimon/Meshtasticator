@@ -36,7 +36,7 @@ SAVE = True
 
 # Add your router types here
 # This leaves room for new experimentation of different routing algorithms
-routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD]
+routerTypes = [conf.ROUTER_TYPE.MANAGED_FLOOD, conf.ROUTER_TYPE.SYSTEM_V6]
 
 # How many times should each combination run
 repetitions = 3

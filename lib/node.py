@@ -149,6 +149,10 @@ class MeshNode:
         self.channelUtilizationIndex = 0  # which "bucket" is current
         self.prevTxAirUtilization = 0.0   # how much total tx air-time had been used at last sample
 
+        # System V6: passive route learning state
+        if self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6:
+            self.v6_routes = {}  # {origNodeId: {nextHop: nodeId, rssi: float, time: float}}
+
         self.env.process(self.track_channel_utilization())
         if not self.is_repeater:  # repeaters don't generate messages themselves
             self.env.process(self.generate_message())
@@ -444,8 +448,58 @@ class MeshNode:
                             pNew.hopLimit = p.hopLimit - 1
                             self.packets.append(pNew)
                             self.env.process(self.transmit(pNew))
+                    elif self.conf.SELECTED_ROUTER_TYPE == self.conf.ROUTER_TYPE.SYSTEM_V6:
+                        # System V6: passive route learning + intelligent forwarding
+                        # Learn: remember which neighbor relayed this origin
+                        rssi = p.rssiAtN[self.nodeid] if self.nodeid in p.rssiAtN else -140
+                        if p.origTxNodeId not in self.v6_routes or rssi > self.v6_routes[p.origTxNodeId].get('rssi', -999):
+                            self.v6_routes[p.origTxNodeId] = {'nextHop': p.txNodeId, 'rssi': rssi, 'time': self.env.now}
+                        # Forward decision: suppress if we already heard this from a better relay
+                        should_forward = self.v6_should_forward(p)
+                        if should_forward and not self.is_client_mute:
+                            logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-forwards packet {p.seq} (rssi={rssi:.1f})")
+                            pNew = MeshPacket(self.conf, self.nodes, p.origTxNodeId, p.destId, self.nodeid, p.packetLen, p.seq, p.genTime, p.wantAck, False, None, self.env.now)
+                            pNew.hopLimit = p.hopLimit - 1
+                            self.packets.append(pNew)
+                            self.env.process(self.transmit(pNew))
                 else:
                     self.droppedByDelay += 1
+
+    def v6_should_forward(self, packet):
+        """System V6 forwarding decision: passive learning + intelligent suppression.
+
+        Key idea: only forward if this node adds value to the delivery.
+        - First time seeing this packet? Forward (like managed flood).
+        - Already seen from a better relay? Suppress (saves TX).
+        - Destination known in route table? Forward only if we're on the path.
+        """
+        seq = packet.seq
+        times = self.timesReceived.get(seq, 0)
+
+        # First reception: always forward (we're the first relay to hear it)
+        if times <= 1:
+            return True
+
+        # If we know a route to the destination, check if we're useful
+        if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
+            # We know how to reach the destination — we're valuable as a relay
+            return True
+
+        # If we know the originator, check if we received it from the best path
+        if packet.origTxNodeId in self.v6_routes:
+            best_relay = self.v6_routes[packet.origTxNodeId]['nextHop']
+            if packet.txNodeId == best_relay:
+                # Came from our best known relay — forward it
+                return True
+            # Came from a different relay — suppress (the best relay will handle it)
+            return False
+
+        # Routers/repeaters: allow up to 2 rebroadcasts (like managed flood)
+        if self.is_router or self.is_repeater:
+            return times <= 2
+
+        # Clients: suppress after first rebroadcast
+        return times <= 1
 
     def get_stats(self) -> MeshNodeStats:
         """Get internally-tracked statistics/data. Only valid after the sim ends.
