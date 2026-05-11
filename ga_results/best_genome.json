@@ -1,0 +1,27 @@
+{
+  "genome": {
+    "route_expiry_ms": 30000,
+    "neighbor_expiry_ms": 160197,
+    "echo_timeout_ms": 3332,
+    "echo_min_score": 0.476,
+    "echo_min_observations": 9,
+    "mpr_recompute_interval": 117,
+    "relay_redundancy_threshold": 4,
+    "gossip_probability": 0.262,
+    "defer_slot_multiplier": 1.112,
+    "rssi_margin_suppress": 40,
+    "power_control_margin": 7,
+    "density_threshold": 6
+  },
+  "result": {
+    "mf_tx": 3563,
+    "v6_tx": 1552,
+    "mf_reach": 0.3370385395537525,
+    "v6_reach": 0.2399460416491021,
+    "mf_collisions": 4587,
+    "v6_collisions": 2082,
+    "mf_dropped": 5533,
+    "v6_dropped": 328
+  },
+  "score": 175.78
+}

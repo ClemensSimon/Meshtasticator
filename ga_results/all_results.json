@@ -1,0 +1,1394 @@
+[
+  {
+    "generation": 1,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.2,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 50,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.0,
+      "defer_slot_multiplier": 1.5,
+      "rssi_margin_suppress": 20,
+      "power_control_margin": 10,
+      "density_threshold": 4
+    },
+    "result": {
+      "mf_tx": 3555,
+      "v6_tx": 1566,
+      "mf_reach": 0.30693444486547933,
+      "v6_reach": 0.1896551724137931,
+      "mf_collisions": 4028,
+      "v6_collisions": 1395,
+      "mf_dropped": 4275,
+      "v6_dropped": 188
+    },
+    "score": 159.06
+  },
+  {
+    "generation": 1,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 249672,
+      "neighbor_expiry_ms": 65558,
+      "echo_timeout_ms": 10230,
+      "echo_min_score": 0.099,
+      "echo_min_observations": 14,
+      "mpr_recompute_interval": 47,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.294,
+      "defer_slot_multiplier": 2.237,
+      "rssi_margin_suppress": 19,
+      "power_control_margin": 12,
+      "density_threshold": 8
+    },
+    "result": {
+      "mf_tx": 3397,
+      "v6_tx": 1715,
+      "mf_reach": 0.3248638838475499,
+      "v6_reach": 0.181788538354936,
+      "mf_collisions": 3441,
+      "v6_collisions": 1495,
+      "mf_dropped": 5292,
+      "v6_dropped": 493
+    },
+    "score": 127.2
+  },
+  {
+    "generation": 1,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 506593,
+      "neighbor_expiry_ms": 484412,
+      "echo_timeout_ms": 6197,
+      "echo_min_score": 0.475,
+      "echo_min_observations": 10,
+      "mpr_recompute_interval": 187,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.248,
+      "defer_slot_multiplier": 2.288,
+      "rssi_margin_suppress": 26,
+      "power_control_margin": 6,
+      "density_threshold": 8
+    },
+    "result": {
+      "mf_tx": 3137,
+      "v6_tx": 1611,
+      "mf_reach": 0.27322599031062983,
+      "v6_reach": 0.2106812447434819,
+      "mf_collisions": 2616,
+      "v6_collisions": 1480,
+      "mf_dropped": 4179,
+      "v6_dropped": 388
+    },
+    "score": 157.56
+  },
+  {
+    "generation": 1,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 49337,
+      "neighbor_expiry_ms": 551727,
+      "echo_timeout_ms": 2096,
+      "echo_min_score": 0.17,
+      "echo_min_observations": 6,
+      "mpr_recompute_interval": 33,
+      "relay_redundancy_threshold": 3,
+      "gossip_probability": 0.046,
+      "defer_slot_multiplier": 2.211,
+      "rssi_margin_suppress": 33,
+      "power_control_margin": 10,
+      "density_threshold": 3
+    },
+    "result": {
+      "mf_tx": 3025,
+      "v6_tx": 1581,
+      "mf_reach": 0.27154257266271326,
+      "v6_reach": 0.2034566658276701,
+      "mf_collisions": 2500,
+      "v6_collisions": 1471,
+      "mf_dropped": 4399,
+      "v6_dropped": 193
+    },
+    "score": 153.51
+  },
+  {
+    "generation": 1,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 422237,
+      "neighbor_expiry_ms": 364357,
+      "echo_timeout_ms": 9577,
+      "echo_min_score": 0.362,
+      "echo_min_observations": 3,
+      "mpr_recompute_interval": 185,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.114,
+      "defer_slot_multiplier": 1.893,
+      "rssi_margin_suppress": 16,
+      "power_control_margin": 10,
+      "density_threshold": 10
+    },
+    "result": {
+      "mf_tx": 3309,
+      "v6_tx": 1580,
+      "mf_reach": 0.3213959285417532,
+      "v6_reach": 0.20276536548351742,
+      "mf_collisions": 4514,
+      "v6_collisions": 1729,
+      "mf_dropped": 5285,
+      "v6_dropped": 141
+    },
+    "score": 153.07
+  },
+  {
+    "generation": 1,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 32920,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 8,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3182,
+      "v6_tx": 1545,
+      "mf_reach": 0.26695232265524044,
+      "v6_reach": 0.23191175193259794,
+      "mf_collisions": 3339,
+      "v6_collisions": 1913,
+      "mf_dropped": 4051,
+      "v6_dropped": 274
+    },
+    "score": 167.68
+  },
+  {
+    "generation": 2,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 32920,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 8,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3128,
+      "v6_tx": 1532,
+      "mf_reach": 0.2592838196286472,
+      "v6_reach": 0.23511773525002205,
+      "mf_collisions": 3054,
+      "v6_collisions": 1649,
+      "mf_dropped": 3952,
+      "v6_dropped": 287
+    },
+    "score": 170.39
+  },
+  {
+    "generation": 2,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.2,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 50,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.0,
+      "defer_slot_multiplier": 1.5,
+      "rssi_margin_suppress": 20,
+      "power_control_margin": 10,
+      "density_threshold": 4
+    },
+    "result": {
+      "mf_tx": 3353,
+      "v6_tx": 1542,
+      "mf_reach": 0.31145957193816887,
+      "v6_reach": 0.21150563332195288,
+      "mf_collisions": 3758,
+      "v6_collisions": 1648,
+      "mf_dropped": 4919,
+      "v6_dropped": 202
+    },
+    "score": 165.87
+  },
+  {
+    "generation": 2,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.2,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 86,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.0,
+      "defer_slot_multiplier": 1.5,
+      "rssi_margin_suppress": 20,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3428,
+      "v6_tx": 1609,
+      "mf_reach": 0.32787018255578093,
+      "v6_reach": 0.1438143487497957,
+      "mf_collisions": 3986,
+      "v6_collisions": 809,
+      "mf_dropped": 5349,
+      "v6_dropped": 134
+    },
+    "score": 115.64
+  },
+  {
+    "generation": 2,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.284,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 39,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.0,
+      "defer_slot_multiplier": 1.5,
+      "rssi_margin_suppress": 20,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3418,
+      "v6_tx": 1529,
+      "mf_reach": 0.32458082885162926,
+      "v6_reach": 0.26391259815636736,
+      "mf_collisions": 3935,
+      "v6_collisions": 2005,
+      "mf_dropped": 5060,
+      "v6_dropped": 218
+    },
+    "score": 175.71
+  },
+  {
+    "generation": 2,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 32920,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.471,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 50,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.0,
+      "defer_slot_multiplier": 1.5,
+      "rssi_margin_suppress": 20,
+      "power_control_margin": 10,
+      "density_threshold": 3
+    },
+    "result": {
+      "mf_tx": 3280,
+      "v6_tx": 1597,
+      "mf_reach": 0.3065916021581046,
+      "v6_reach": 0.18915542228885557,
+      "mf_collisions": 3803,
+      "v6_collisions": 1313,
+      "mf_dropped": 4935,
+      "v6_dropped": 179
+    },
+    "score": 149.6
+  },
+  {
+    "generation": 2,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 205562,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.191,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 34,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3088,
+      "v6_tx": 1616,
+      "mf_reach": 0.22843176113092878,
+      "v6_reach": 0.16530478836411178,
+      "mf_collisions": 2830,
+      "v6_collisions": 1191,
+      "mf_dropped": 3449,
+      "v6_dropped": 154
+    },
+    "score": 160.48
+  },
+  {
+    "generation": 3,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.284,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 39,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.0,
+      "defer_slot_multiplier": 1.5,
+      "rssi_margin_suppress": 20,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3277,
+      "v6_tx": 1616,
+      "mf_reach": 0.32251983347733876,
+      "v6_reach": 0.1709253287025552,
+      "mf_collisions": 3627,
+      "v6_collisions": 1076,
+      "mf_dropped": 5419,
+      "v6_dropped": 161
+    },
+    "score": 129.03
+  },
+  {
+    "generation": 3,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 32920,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 8,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3110,
+      "v6_tx": 1619,
+      "mf_reach": 0.2920401032963694,
+      "v6_reach": 0.17944425845329762,
+      "mf_collisions": 2903,
+      "v6_collisions": 1426,
+      "mf_dropped": 4799,
+      "v6_dropped": 279
+    },
+    "score": 134.94
+  },
+  {
+    "generation": 3,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.284,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 39,
+      "relay_redundancy_threshold": 2,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3303,
+      "v6_tx": 1599,
+      "mf_reach": 0.28733227528495164,
+      "v6_reach": 0.1719953130231001,
+      "mf_collisions": 4490,
+      "v6_collisions": 1468,
+      "mf_dropped": 4042,
+      "v6_dropped": 196
+    },
+    "score": 146.48
+  },
+  {
+    "generation": 3,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.284,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 39,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3376,
+      "v6_tx": 1592,
+      "mf_reach": 0.289311775647446,
+      "v6_reach": 0.18505189152996318,
+      "mf_collisions": 3381,
+      "v6_collisions": 1356,
+      "mf_dropped": 4447,
+      "v6_dropped": 197
+    },
+    "score": 155.54
+  },
+  {
+    "generation": 3,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 32920,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 8,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.7,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3374,
+      "v6_tx": 1636,
+      "mf_reach": 0.3141410945903195,
+      "v6_reach": 0.1557867147186502,
+      "mf_collisions": 4115,
+      "v6_collisions": 1222,
+      "mf_dropped": 4861,
+      "v6_dropped": 223
+    },
+    "score": 122.15
+  },
+  {
+    "generation": 3,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 40,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3122,
+      "v6_tx": 1636,
+      "mf_reach": 0.27690926770887875,
+      "v6_reach": 0.22464010713090057,
+      "mf_collisions": 3157,
+      "v6_collisions": 1950,
+      "mf_dropped": 4166,
+      "v6_dropped": 335
+    },
+    "score": 154.87
+  },
+  {
+    "generation": 4,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 300000,
+      "echo_timeout_ms": 5000,
+      "echo_min_score": 0.284,
+      "echo_min_observations": 5,
+      "mpr_recompute_interval": 39,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.219,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3469,
+      "v6_tx": 1535,
+      "mf_reach": 0.33978334573720337,
+      "v6_reach": 0.22248345524207594,
+      "mf_collisions": 4680,
+      "v6_collisions": 1908,
+      "mf_dropped": 5188,
+      "v6_dropped": 219
+    },
+    "score": 164.81
+  },
+  {
+    "generation": 4,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 40,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3563,
+      "v6_tx": 1552,
+      "mf_reach": 0.3370385395537525,
+      "v6_reach": 0.2399460416491021,
+      "mf_collisions": 4587,
+      "v6_collisions": 2082,
+      "mf_dropped": 5533,
+      "v6_dropped": 328
+    },
+    "score": 175.78
+  },
+  {
+    "generation": 4,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 142,
+      "relay_redundancy_threshold": 3,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 40,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3182,
+      "v6_tx": 1607,
+      "mf_reach": 0.2929088503152487,
+      "v6_reach": 0.1484651469014896,
+      "mf_collisions": 2869,
+      "v6_collisions": 877,
+      "mf_dropped": 5193,
+      "v6_dropped": 263
+    },
+    "score": 120.43
+  },
+  {
+    "generation": 4,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 207290,
+      "echo_timeout_ms": 4933,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3278,
+      "v6_tx": 1619,
+      "mf_reach": 0.31042011745219095,
+      "v6_reach": 0.16814449917898194,
+      "mf_collisions": 4592,
+      "v6_collisions": 1389,
+      "mf_dropped": 4982,
+      "v6_dropped": 281
+    },
+    "score": 131.51
+  },
+  {
+    "generation": 4,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3281,
+      "v6_tx": 1555,
+      "mf_reach": 0.32567951318458416,
+      "v6_reach": 0.23560344827586208,
+      "mf_collisions": 3703,
+      "v6_collisions": 1843,
+      "mf_dropped": 5684,
+      "v6_dropped": 245
+    },
+    "score": 166.5
+  },
+  {
+    "generation": 4,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.284,
+      "defer_slot_multiplier": 1.006,
+      "rssi_margin_suppress": 38,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3067,
+      "v6_tx": 1625,
+      "mf_reach": 0.31444255450749964,
+      "v6_reach": 0.198983841412627,
+      "mf_collisions": 3585,
+      "v6_collisions": 1519,
+      "mf_dropped": 5114,
+      "v6_dropped": 325
+    },
+    "score": 141.05
+  },
+  {
+    "generation": 5,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 40,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3183,
+      "v6_tx": 1578,
+      "mf_reach": 0.2672944841747504,
+      "v6_reach": 0.21743529213388416,
+      "mf_collisions": 2471,
+      "v6_collisions": 1971,
+      "mf_dropped": 4143,
+      "v6_dropped": 353
+    },
+    "score": 151.64
+  },
+  {
+    "generation": 5,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3194,
+      "v6_tx": 1490,
+      "mf_reach": 0.28992740471869327,
+      "v6_reach": 0.2799820868786386,
+      "mf_collisions": 2743,
+      "v6_collisions": 3002,
+      "mf_dropped": 4512,
+      "v6_dropped": 284
+    },
+    "score": 150.26
+  },
+  {
+    "generation": 5,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 30000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.5,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 2950,
+      "v6_tx": 1641,
+      "mf_reach": 0.2563749637786149,
+      "v6_reach": 0.15994130594277328,
+      "mf_collisions": 2663,
+      "v6_collisions": 1070,
+      "mf_dropped": 4360,
+      "v6_dropped": 274
+    },
+    "score": 134.62
+  },
+  {
+    "generation": 5,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 120198,
+      "neighbor_expiry_ms": 104756,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3570,
+      "v6_tx": 1559,
+      "mf_reach": 0.3429509734928454,
+      "v6_reach": 0.26255907579205323,
+      "mf_collisions": 4799,
+      "v6_collisions": 2891,
+      "mf_dropped": 5079,
+      "v6_dropped": 287
+    },
+    "score": 170.82
+  },
+  {
+    "generation": 5,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3330,
+      "v6_tx": 1504,
+      "mf_reach": 0.31451052996991435,
+      "v6_reach": 0.2601161154116819,
+      "mf_collisions": 3200,
+      "v6_collisions": 2531,
+      "mf_dropped": 4787,
+      "v6_dropped": 260
+    },
+    "score": 161.48
+  },
+  {
+    "generation": 5,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.282,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 40,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3230,
+      "v6_tx": 1597,
+      "mf_reach": 0.3452607866920811,
+      "v6_reach": 0.15964541314248537,
+      "mf_collisions": 4177,
+      "v6_collisions": 967,
+      "mf_dropped": 6048,
+      "v6_dropped": 206
+    },
+    "score": 115.14
+  },
+  {
+    "generation": 6,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 120198,
+      "neighbor_expiry_ms": 104756,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3242,
+      "v6_tx": 1622,
+      "mf_reach": 0.30647036032545527,
+      "v6_reach": 0.16131202691337257,
+      "mf_collisions": 4178,
+      "v6_collisions": 1175,
+      "mf_dropped": 4848,
+      "v6_dropped": 226
+    },
+    "score": 127.47
+  },
+  {
+    "generation": 6,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3247,
+      "v6_tx": 1525,
+      "mf_reach": 0.2646533875919183,
+      "v6_reach": 0.24172938911255032,
+      "mf_collisions": 3278,
+      "v6_collisions": 2070,
+      "mf_dropped": 4589,
+      "v6_dropped": 281
+    },
+    "score": 170.16
+  },
+  {
+    "generation": 6,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 7
+    },
+    "result": {
+      "mf_tx": 3134,
+      "v6_tx": 1548,
+      "mf_reach": 0.28403839317454677,
+      "v6_reach": 0.23377409039840982,
+      "mf_collisions": 3026,
+      "v6_collisions": 2149,
+      "mf_dropped": 4171,
+      "v6_dropped": 279
+    },
+    "score": 156.86
+  },
+  {
+    "generation": 6,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 120198,
+      "neighbor_expiry_ms": 104756,
+      "echo_timeout_ms": 2000,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 118,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.266,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3090,
+      "v6_tx": 1594,
+      "mf_reach": 0.25632412422019607,
+      "v6_reach": 0.21771467207572684,
+      "mf_collisions": 2518,
+      "v6_collisions": 2045,
+      "mf_dropped": 4063,
+      "v6_dropped": 223
+    },
+    "score": 148.69
+  },
+  {
+    "generation": 6,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 189347,
+      "neighbor_expiry_ms": 180538,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.444,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 127,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 33,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3198,
+      "v6_tx": 1581,
+      "mf_reach": 0.2956311778465253,
+      "v6_reach": 0.214434240166349,
+      "mf_collisions": 3165,
+      "v6_collisions": 2013,
+      "mf_dropped": 4561,
+      "v6_dropped": 304
+    },
+    "score": 155.59
+  },
+  {
+    "generation": 6,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 30,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3351,
+      "v6_tx": 1594,
+      "mf_reach": 0.2974587862644878,
+      "v6_reach": 0.1922017199632629,
+      "mf_collisions": 3762,
+      "v6_collisions": 1380,
+      "mf_dropped": 4433,
+      "v6_dropped": 218
+    },
+    "score": 158.06
+  },
+  {
+    "generation": 7,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3521,
+      "v6_tx": 1539,
+      "mf_reach": 0.3409316976127321,
+      "v6_reach": 0.22753524715474774,
+      "mf_collisions": 5433,
+      "v6_collisions": 2281,
+      "mf_dropped": 5763,
+      "v6_dropped": 294
+    },
+    "score": 168.44
+  },
+  {
+    "generation": 7,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 30,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3054,
+      "v6_tx": 1574,
+      "mf_reach": 0.2565775324396014,
+      "v6_reach": 0.17879016696031547,
+      "mf_collisions": 2681,
+      "v6_collisions": 1561,
+      "mf_dropped": 4305,
+      "v6_dropped": 242
+    },
+    "score": 152.02
+  },
+  {
+    "generation": 7,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 368514,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 103,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.213,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 29,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3370,
+      "v6_tx": 1572,
+      "mf_reach": 0.3272925581005118,
+      "v6_reach": 0.22911305541259222,
+      "mf_collisions": 3376,
+      "v6_collisions": 2148,
+      "mf_dropped": 5200,
+      "v6_dropped": 272
+    },
+    "score": 159.89
+  },
+  {
+    "generation": 7,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 388715,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3148,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3235,
+      "v6_tx": 1580,
+      "mf_reach": 0.2948204321075977,
+      "v6_reach": 0.20374668435013263,
+      "mf_collisions": 3328,
+      "v6_collisions": 1949,
+      "mf_dropped": 4412,
+      "v6_dropped": 232
+    },
+    "score": 155.81
+  },
+  {
+    "generation": 7,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 252602,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 30,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3365,
+      "v6_tx": 1561,
+      "mf_reach": 0.3512775986107666,
+      "v6_reach": 0.2277065955800155,
+      "mf_collisions": 3662,
+      "v6_collisions": 1892,
+      "mf_dropped": 5703,
+      "v6_dropped": 277
+    },
+    "score": 153.44
+  },
+  {
+    "generation": 7,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 225807,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 0.745,
+      "rssi_margin_suppress": 30,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 2974,
+      "v6_tx": 1618,
+      "mf_reach": 0.28573565711721144,
+      "v6_reach": 0.18587453261321146,
+      "mf_collisions": 3300,
+      "v6_collisions": 1458,
+      "mf_dropped": 4791,
+      "v6_dropped": 277
+    },
+    "score": 141.73
+  },
+  {
+    "generation": 8,
+    "individual": 1,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3104,
+      "v6_tx": 1580,
+      "mf_reach": 0.28169646196424564,
+      "v6_reach": 0.23831417624521073,
+      "mf_collisions": 3059,
+      "v6_collisions": 2264,
+      "mf_dropped": 4667,
+      "v6_dropped": 250
+    },
+    "score": 153.49
+  },
+  {
+    "generation": 8,
+    "individual": 2,
+    "genome": {
+      "route_expiry_ms": 368514,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 103,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.213,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 29,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3344,
+      "v6_tx": 1458,
+      "mf_reach": 0.3088953310955142,
+      "v6_reach": 0.30192777626934564,
+      "mf_collisions": 3652,
+      "v6_collisions": 2923,
+      "mf_dropped": 4685,
+      "v6_dropped": 245
+    },
+    "score": 171.65
+  },
+  {
+    "generation": 8,
+    "individual": 3,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 5,
+      "gossip_probability": 0.259,
+      "defer_slot_multiplier": 1.622,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3388,
+      "v6_tx": 1546,
+      "mf_reach": 0.3214067744888618,
+      "v6_reach": 0.2071551724137931,
+      "mf_collisions": 4396,
+      "v6_collisions": 1657,
+      "mf_dropped": 5107,
+      "v6_dropped": 253
+    },
+    "score": 161.02
+  },
+  {
+    "generation": 8,
+    "individual": 4,
+    "genome": {
+      "route_expiry_ms": 368514,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 9,
+      "mpr_recompute_interval": 103,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.168,
+      "defer_slot_multiplier": 1.235,
+      "rssi_margin_suppress": 29,
+      "power_control_margin": 6,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3278,
+      "v6_tx": 1586,
+      "mf_reach": 0.30661490446829565,
+      "v6_reach": 0.18614074257835111,
+      "mf_collisions": 3880,
+      "v6_collisions": 1488,
+      "mf_dropped": 5325,
+      "v6_dropped": 308
+    },
+    "score": 145.83
+  },
+  {
+    "generation": 8,
+    "individual": 5,
+    "genome": {
+      "route_expiry_ms": 300000,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 117,
+      "relay_redundancy_threshold": 3,
+      "gossip_probability": 0.253,
+      "defer_slot_multiplier": 1.185,
+      "rssi_margin_suppress": 29,
+      "power_control_margin": 7,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3462,
+      "v6_tx": 1529,
+      "mf_reach": 0.3114176245210728,
+      "v6_reach": 0.2709733740724574,
+      "mf_collisions": 4487,
+      "v6_collisions": 2793,
+      "mf_dropped": 4854,
+      "v6_dropped": 254
+    },
+    "score": 174.05
+  },
+  {
+    "generation": 8,
+    "individual": 6,
+    "genome": {
+      "route_expiry_ms": 350130,
+      "neighbor_expiry_ms": 160197,
+      "echo_timeout_ms": 3332,
+      "echo_min_score": 0.476,
+      "echo_min_observations": 7,
+      "mpr_recompute_interval": 103,
+      "relay_redundancy_threshold": 4,
+      "gossip_probability": 0.262,
+      "defer_slot_multiplier": 1.112,
+      "rssi_margin_suppress": 34,
+      "power_control_margin": 5,
+      "density_threshold": 6
+    },
+    "result": {
+      "mf_tx": 3563,
+      "v6_tx": 1538,
+      "mf_reach": 0.34098727898231856,
+      "v6_reach": 0.2338605133523464,
+      "mf_collisions": 5195,
+      "v6_collisions": 2363,
+      "mf_dropped": 5067,
+      "v6_dropped": 252
+    },
+    "score": 172.38
+  }
+]

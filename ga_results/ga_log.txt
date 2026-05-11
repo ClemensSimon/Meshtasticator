@@ -1,0 +1,91 @@
+[12:41:51] === GA Optimizer: 8 generations, pop=6, 30 nodes, 900s sim ===
+[12:41:51] 
+--- Generation 1/8 ---
+[12:42:03]   Gen  1 # 1: score=  163.2 | TX:+55.1% Reach: 27.3% Coll:+10.5% | expire=300s echo=5s gossip=0.00 defer=1.5 mpr_int=50 relay_thr=2 density=4
+[12:42:03]   *** NEW BEST: score=163.2 ***
+[12:42:23] === GA Optimizer: 8 generations, pop=6, 30 nodes, 900s sim ===
+[12:42:23] 
+--- Generation 1/8 ---
+[12:42:35]   Gen  1 # 1: score=  159.1 | TX:+55.9% Reach: 19.0% Coll:+65.4% | expire=300s echo=5s gossip=0.00 defer=1.5 mpr_int=50 relay_thr=2 density=4
+[12:42:35]   *** NEW BEST: score=159.1 ***
+[12:42:48]   Gen  1 # 2: score=  127.2 | TX:+49.5% Reach: 18.2% Coll:+56.6% | expire=249s echo=10s gossip=0.29 defer=2.2 mpr_int=47 relay_thr=4 density=8
+[12:42:58]   Gen  1 # 3: score=  157.6 | TX:+48.6% Reach: 21.1% Coll:+43.4% | expire=506s echo=6s gossip=0.25 defer=2.3 mpr_int=187 relay_thr=2 density=8
+[12:43:09]   Gen  1 # 4: score=  153.5 | TX:+47.7% Reach: 20.3% Coll:+41.2% | expire=49s echo=2s gossip=0.05 defer=2.2 mpr_int=33 relay_thr=3 density=3
+[12:43:21]   Gen  1 # 5: score=  153.1 | TX:+52.3% Reach: 20.3% Coll:+61.7% | expire=422s echo=9s gossip=0.11 defer=1.9 mpr_int=185 relay_thr=5 density=10
+[12:43:33]   Gen  1 # 6: score=  167.7 | TX:+51.4% Reach: 23.2% Coll:+42.7% | expire=32s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=5 density=6
+[12:43:33]   *** NEW BEST: score=167.7 ***
+[12:43:33]   Survivors: 2 (scores: [167.68, 159.06])
+[12:43:33] 
+--- Generation 2/8 ---
+[12:43:44]   Gen  2 # 1: score=  170.4 | TX:+51.0% Reach: 23.5% Coll:+46.0% | expire=32s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=5 density=6
+[12:43:44]   *** NEW BEST: score=170.4 ***
+[12:43:56]   Gen  2 # 2: score=  165.9 | TX:+54.0% Reach: 21.2% Coll:+56.1% | expire=300s echo=5s gossip=0.00 defer=1.5 mpr_int=50 relay_thr=2 density=4
+[12:44:08]   Gen  2 # 3: score=  115.6 | TX:+53.1% Reach: 14.4% Coll:+79.7% | expire=300s echo=5s gossip=0.00 defer=1.5 mpr_int=86 relay_thr=2 density=6
+[12:44:21]   Gen  2 # 4: score=  175.7 | TX:+55.3% Reach: 26.4% Coll:+49.0% | expire=300s echo=5s gossip=0.00 defer=1.5 mpr_int=39 relay_thr=2 density=6
+[12:44:21]   *** NEW BEST: score=175.7 ***
+[12:44:34]   Gen  2 # 5: score=  149.6 | TX:+51.3% Reach: 18.9% Coll:+65.5% | expire=32s echo=3s gossip=0.00 defer=1.5 mpr_int=50 relay_thr=2 density=3
+[12:44:43]   Gen  2 # 6: score=  160.5 | TX:+47.7% Reach: 16.5% Coll:+57.9% | expire=300s echo=5s gossip=0.26 defer=1.2 mpr_int=34 relay_thr=5 density=6
+[12:44:43]   Survivors: 2 (scores: [175.71, 170.39])
+[12:44:43] 
+--- Generation 3/8 ---
+[12:44:55]   Gen  3 # 1: score=  129.0 | TX:+50.7% Reach: 17.1% Coll:+70.3% | expire=300s echo=5s gossip=0.00 defer=1.5 mpr_int=39 relay_thr=2 density=6
+[12:45:06]   Gen  3 # 2: score=  134.9 | TX:+47.9% Reach: 17.9% Coll:+50.9% | expire=32s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=5 density=6
+[12:45:17]   Gen  3 # 3: score=  146.5 | TX:+51.6% Reach: 17.2% Coll:+67.3% | expire=300s echo=5s gossip=0.26 defer=1.2 mpr_int=39 relay_thr=2 density=6
+[12:45:28]   Gen  3 # 4: score=  155.5 | TX:+52.8% Reach: 18.5% Coll:+59.9% | expire=300s echo=5s gossip=0.26 defer=1.2 mpr_int=39 relay_thr=5 density=6
+[12:45:39]   Gen  3 # 5: score=  122.2 | TX:+51.5% Reach: 15.6% Coll:+70.3% | expire=32s echo=3s gossip=0.26 defer=1.7 mpr_int=117 relay_thr=5 density=6
+[12:45:50]   Gen  3 # 6: score=  154.9 | TX:+47.6% Reach: 22.5% Coll:+38.2% | expire=30s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:45:50]   Survivors: 2 (scores: [155.54, 154.87])
+[12:45:50] 
+--- Generation 4/8 ---
+[12:46:03]   Gen  4 # 1: score=  164.8 | TX:+55.8% Reach: 22.2% Coll:+59.2% | expire=300s echo=5s gossip=0.26 defer=1.2 mpr_int=39 relay_thr=5 density=6
+[12:46:18]   Gen  4 # 2: score=  175.8 | TX:+56.4% Reach: 24.0% Coll:+54.6% | expire=30s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:46:18]   *** NEW BEST: score=175.8 ***
+[12:46:29]   Gen  4 # 3: score=  120.4 | TX:+49.5% Reach: 14.8% Coll:+69.4% | expire=30s echo=3s gossip=0.26 defer=1.1 mpr_int=142 relay_thr=3 density=6
+[12:46:42]   Gen  4 # 4: score=  131.5 | TX:+50.6% Reach: 16.8% Coll:+69.8% | expire=30s echo=4s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:46:55]   Gen  4 # 5: score=  166.5 | TX:+52.6% Reach: 23.6% Coll:+50.2% | expire=300s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:47:06]   Gen  4 # 6: score=  141.1 | TX:+47.0% Reach: 19.9% Coll:+57.6% | expire=30s echo=3s gossip=0.28 defer=1.0 mpr_int=117 relay_thr=4 density=6
+[12:47:06]   Survivors: 2 (scores: [175.78, 166.5])
+[12:47:06] 
+--- Generation 5/8 ---
+[12:47:17]   Gen  5 # 1: score=  151.6 | TX:+50.4% Reach: 21.7% Coll:+20.2% | expire=30s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:47:29]   Gen  5 # 2: score=  150.3 | TX:+53.4% Reach: 28.0% Coll: -9.4% | expire=300s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:47:39]   Gen  5 # 3: score=  134.6 | TX:+44.4% Reach: 16.0% Coll:+59.8% | expire=30s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:47:53]   Gen  5 # 4: score=  170.8 | TX:+56.3% Reach: 26.3% Coll:+39.8% | expire=120s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=4 density=6
+[12:48:05]   Gen  5 # 5: score=  161.5 | TX:+54.8% Reach: 26.0% Coll:+20.9% | expire=300s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:48:18]   Gen  5 # 6: score=  115.1 | TX:+50.6% Reach: 16.0% Coll:+76.8% | expire=300s echo=3s gossip=0.28 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:48:18]   Survivors: 2 (scores: [170.82, 161.48])
+[12:48:18] 
+--- Generation 6/8 ---
+[12:48:30]   Gen  6 # 1: score=  127.5 | TX:+50.0% Reach: 16.1% Coll:+71.9% | expire=120s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=4 density=6
+[12:48:41]   Gen  6 # 2: score=  170.2 | TX:+53.0% Reach: 24.2% Coll:+36.9% | expire=300s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:48:53]   Gen  6 # 3: score=  156.9 | TX:+50.6% Reach: 23.4% Coll:+29.0% | expire=300s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=4 density=7
+[12:49:04]   Gen  6 # 4: score=  148.7 | TX:+48.4% Reach: 21.8% Coll:+18.8% | expire=120s echo=2s gossip=0.27 defer=1.1 mpr_int=118 relay_thr=4 density=6
+[12:49:15]   Gen  6 # 5: score=  155.6 | TX:+50.6% Reach: 21.4% Coll:+36.4% | expire=189s echo=3s gossip=0.26 defer=1.2 mpr_int=127 relay_thr=4 density=6
+[12:49:27]   Gen  6 # 6: score=  158.1 | TX:+52.4% Reach: 19.2% Coll:+63.3% | expire=300s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=4 density=6
+[12:49:27]   Survivors: 2 (scores: [170.16, 158.06])
+[12:49:27] 
+--- Generation 7/8 ---
+[12:49:40]   Gen  7 # 1: score=  168.4 | TX:+56.3% Reach: 22.8% Coll:+58.0% | expire=300s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:49:50]   Gen  7 # 2: score=  152.0 | TX:+48.5% Reach: 17.9% Coll:+41.8% | expire=300s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=4 density=6
+[12:50:03]   Gen  7 # 3: score=  159.9 | TX:+53.4% Reach: 22.9% Coll:+36.4% | expire=368s echo=3s gossip=0.21 defer=1.2 mpr_int=103 relay_thr=4 density=6
+[12:50:15]   Gen  7 # 4: score=  155.8 | TX:+51.2% Reach: 20.4% Coll:+41.4% | expire=388s echo=3s gossip=0.26 defer=1.2 mpr_int=117 relay_thr=4 density=6
+[12:50:28]   Gen  7 # 5: score=  153.4 | TX:+53.6% Reach: 22.8% Coll:+48.3% | expire=252s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:50:39]   Gen  7 # 6: score=  141.7 | TX:+45.6% Reach: 18.6% Coll:+55.8% | expire=300s echo=3s gossip=0.26 defer=0.7 mpr_int=117 relay_thr=4 density=6
+[12:50:39]   Survivors: 2 (scores: [168.44, 159.89])
+[12:50:39] 
+--- Generation 8/8 ---
+[12:50:51]   Gen  8 # 1: score=  153.5 | TX:+49.1% Reach: 23.8% Coll:+26.0% | expire=300s echo=3s gossip=0.26 defer=1.1 mpr_int=117 relay_thr=4 density=6
+[12:51:04]   Gen  8 # 2: score=  171.7 | TX:+56.4% Reach: 30.2% Coll:+20.0% | expire=368s echo=3s gossip=0.21 defer=1.2 mpr_int=103 relay_thr=4 density=6
+[12:51:16]   Gen  8 # 3: score=  161.0 | TX:+54.4% Reach: 20.7% Coll:+62.3% | expire=300s echo=3s gossip=0.26 defer=1.6 mpr_int=117 relay_thr=5 density=6
+[12:51:28]   Gen  8 # 4: score=  145.8 | TX:+51.6% Reach: 18.6% Coll:+61.6% | expire=368s echo=3s gossip=0.17 defer=1.2 mpr_int=103 relay_thr=4 density=6
+[12:51:42]   Gen  8 # 5: score=  174.1 | TX:+55.8% Reach: 27.1% Coll:+37.8% | expire=300s echo=3s gossip=0.25 defer=1.2 mpr_int=117 relay_thr=3 density=6
+[12:51:55]   Gen  8 # 6: score=  172.4 | TX:+56.8% Reach: 23.4% Coll:+54.5% | expire=350s echo=3s gossip=0.26 defer=1.1 mpr_int=103 relay_thr=4 density=6
+[12:51:55]   Survivors: 2 (scores: [174.05, 172.38])
+[12:51:55] 
+======================================================================
+[12:51:55] FINAL BEST (score=175.8):
+[12:51:55]   Genome: {"route_expiry_ms": 30000, "neighbor_expiry_ms": 160197, "echo_timeout_ms": 3332, "echo_min_score": 0.476, "echo_min_observations": 9, "mpr_recompute_interval": 117, "relay_redundancy_threshold": 4, "gossip_probability": 0.262, "defer_slot_multiplier": 1.112, "rssi_margin_suppress": 40, "power_control_margin": 7, "density_threshold": 6}
+[12:51:55]   TX reduction: 56.4%
+[12:51:55]   Reach: MF=33.7% V6=24.0%
+[12:51:55]   Collision reduction: 54.6%
+[12:51:55] ======================================================================
