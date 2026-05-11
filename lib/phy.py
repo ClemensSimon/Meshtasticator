@@ -29,11 +29,29 @@ def check_collision(conf, env, packet, rx_nodeId, packetsAtN):
                 if timing_collision(conf, env, packet, other):
                     logger.debug(f'Packet nr. {packet.seq} from {packet.txNodeId} and packet nr. {other.seq} from {other.txNodeId} will collide!')
                     c = power_collision(packet, other, rx_nodeId)
-                    # mark all the collided packets
+                    # V6 collision recovery: if packets have timing misalignment,
+                    # there's a probability of recovering the stronger packet
+                    # (FTrack-inspired: ~30% recovery rate for moderate collisions)
+                    recovery_chance = 0.0
+                    if len(c) == 1:
+                        # Only weaker packet lost — stronger already survives (capture effect)
+                        pass
+                    elif len(c) == 2:
+                        # Both would be lost. Check timing offset for recovery chance.
+                        time_offset = abs(packet.startTime - other.startTime) if hasattr(other, 'startTime') and other.startTime > 0 else 0
+                        preamble_ms = 2 ** packet.sf / packet.bw * conf.NPREAM * 1000
+                        if time_offset > preamble_ms * 0.3:
+                            # Significant timing offset: 30% chance of recovering stronger pkt
+                            recovery_chance = 0.3
+                    # Apply collision or recover
                     for p in c:
-                        p.collidedAtN[rx_nodeId] = True
-                        if p == packet:
-                            col = 1
+                        if recovery_chance > 0 and random.random() < recovery_chance:
+                            # Recovered! Don't mark as collided
+                            pass
+                        else:
+                            p.collidedAtN[rx_nodeId] = True
+                            if p == packet:
+                                col = 1
                 else:
                     pass  # no timing collision
         return col

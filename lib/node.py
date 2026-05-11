@@ -729,6 +729,25 @@ class MeshNode:
             self.v6_echo_pending[packet.seq] = self.env.now
             self.env.process(self.v6_echo_timeout(packet.seq, self.v6_cfg['echo_timeout_ms']))
 
+            # Multi-Path Parallel TX: for DMs with known alt-routes, send duplicate via
+            # alternative path at different SF. SF orthogonality prevents self-collision.
+            if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_alt_routes:
+                alt_routes = self.v6_alt_routes[packet.destId]
+                if alt_routes and sf_opt != self.conf.current_preset['sf']:
+                    # We're already using non-default SF on primary path.
+                    # Send duplicate on alt path at default SF (different = orthogonal).
+                    alt = alt_routes[0]
+                    alt_sf = self.conf.current_preset['sf']  # default SF for alt path
+                    if alt['nextHop'] in self.v6_neighbors:
+                        pAlt = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId,
+                                          self.nodeid, packet.packetLen, packet.seq, packet.genTime,
+                                          packet.wantAck, False, None, self.env.now,
+                                          sf_override=alt_sf, implicit_header=True, preamble_symbols=8)
+                        pAlt.hopLimit = packet.hopLimit - 1
+                        self.packets.append(pAlt)
+                        self.env.process(self.transmit(pAlt))
+                        logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-MULTIPATH: dup via {alt['nextHop']} at SF{alt_sf}")
+
             # Watchdog: if we have a known route for the destination, expect the next-hop to relay
             if packet.destId != 0xFFFFFFFF and packet.destId in self.v6_routes:
                 expected_relay = self.v6_routes[packet.destId]['nextHop']
