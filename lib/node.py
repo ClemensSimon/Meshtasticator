@@ -170,6 +170,7 @@ class MeshNode:
             # Adaptive parameter profiles: auto-detect scenario and adjust
             self.v6_detected_scenario = 'unknown'  # sparse/standard/dense/congested
             self.v6_last_adaptation = 0
+            self._v6_last_mpr_recompute = 0
             self.v6_routes = {}
             self.v6_neighbors = {}
             self.v6_pkt_relayers = {}
@@ -595,6 +596,13 @@ class MeshNode:
                             stale = [nid for nid, nb in self.v6_neighbors.items() if (self.env.now - nb['lastSeen']) > nb_expiry]
                             for nid in stale:
                                 del self.v6_neighbors[nid]
+                                # Remove stale neighbor from MPR set (Fix B2)
+                                self.v6_mpr_set.discard(nid)
+                                self.v6_am_mpr_for.discard(nid)
+                            if stale and len(self.v6_neighbors) >= 3:
+                                # Topology changed: immediate MPR recompute
+                                self._v6_last_mpr_recompute = self.env.now
+                                self.v6_compute_mpr()
 
                         # Track which relayers we've heard for this specific packet
                         if p.seq not in self.v6_pkt_relayers:
@@ -614,9 +622,15 @@ class MeshNode:
                             self.v6_neighbors_of_neighbor = dict(list(self.v6_neighbors_of_neighbor.items())[-30:])
 
                         # Periodically: adapt parameters, recompute MPR + cluster head
+                        # Fix B2: recompute MPR both on observation count AND time (30s).
+                        # In dynamic meshes, observations may be sparse but topology still changes.
                         total_obs = sum(nb['relayCount'] for nb in self.v6_neighbors.values())
                         self.v6_adapt_to_scenario()
-                        if total_obs % self.v6_cfg['mpr_recompute_interval'] == 0 and len(self.v6_neighbors) >= 3:
+                        time_since_last_mpr = self.env.now - getattr(self, '_v6_last_mpr_recompute', 0)
+                        obs_trigger = (total_obs % self.v6_cfg['mpr_recompute_interval'] == 0)
+                        time_trigger = (time_since_last_mpr >= 30000)  # 30s
+                        if (obs_trigger or time_trigger) and len(self.v6_neighbors) >= 3:
+                            self._v6_last_mpr_recompute = self.env.now
                             self.v6_compute_mpr()
                             self.v6_elect_cluster_head()
                             if self.v6_is_cluster_head:
@@ -642,15 +656,29 @@ class MeshNode:
         Key improvement: by waiting ~1 slot time, we observe whether other relays
         have already forwarded the packet. This dramatically improves suppression
         in dense networks where multiple nodes hear the same packet simultaneously.
+
+        In sparse networks (<= 8 neighbors), skip the defer entirely — every
+        rebroadcast is critical for reach and the defer delay only causes
+        unnecessary suppression.
         """
         from lib.phy import get_current_slot_time
-        # Wait 1-2 slot times (proportional to how strong the signal was —
-        # nodes with weaker signals wait longer, giving closer nodes priority)
         sensitivity = self.conf.current_preset["sensitivity"]
         rssi_range = abs(sensitivity)  # e.g., 131.5
         rssi_normalized = max(0, min(1, (rssi - sensitivity) / rssi_range))
-        # Strong signal = short wait (this node is close, good relay)
-        # Weak signal = long wait (far away, likely redundant)
+
+        # Sparse: skip defer, forward immediately
+        if len(self.v6_neighbors) <= 8:
+            yield self.env.timeout(0)
+            pNew = MeshPacket(self.conf, self.nodes, packet.origTxNodeId, packet.destId, self.nodeid, packet.packetLen, packet.seq, packet.genTime, packet.wantAck, False, None, self.env.now)
+            pNew.hopLimit = packet.hopLimit - 1
+            self.packets.append(pNew)
+            self.env.process(self.transmit(pNew))
+            return
+        # Forward-Biased Contention (Fix A3):
+        # WEAK signal = SHORT wait (node is FAR from sender = carries packet further)
+        # STRONG signal = LONG wait (node is CLOSE to sender = likely redundant)
+        # This prevents the "black hole" near the origin that Tom (NomDeTom) identified:
+        # close nodes no longer suppress distant ones; distant nodes broadcast first.
         slot = get_current_slot_time()
         # TDMA: if we have an assigned slot, use it instead of random defer
         if self.v6_tdma_slot >= 0 and self.v6_tdma_slot_count > 0:
@@ -658,7 +686,8 @@ class MeshNode:
             # This eliminates collisions within the cluster
             wait_ms = slot * self.v6_tdma_slot * 2
         else:
-            wait_ms = slot * (self.v6_cfg['defer_slot_multiplier'] - rssi_normalized * 0.5)
+            # Inverted: rssi_normalized=1 (close) -> longer wait; =0 (far) -> shorter wait
+            wait_ms = slot * (self.v6_cfg['defer_slot_multiplier'] - (1.0 - rssi_normalized) * 0.5)
         yield self.env.timeout(wait_ms)
 
         # Now check — did other relays already handle it?
@@ -721,10 +750,17 @@ class MeshNode:
             relay_preamble = 8 if is_relay else None  # 8 symbols for relays, default for originals
 
             # Network Coding: check if we can XOR this with a buffered packet
+            # Fix B1: Only XOR packets where combined payload <= 160 bytes.
+            # Tom (NomDeTom) noted that LoRa packets >160 bytes drop in reliability
+            # quickly. Telemetry/position (20-80B) are ideal; text messages are not.
+            MAX_XOR_PAYLOAD = 160
             coding_partner = None
             for i, (buf_pkt, buf_rssi, buf_time) in enumerate(self.v6_coding_buffer):
-                # Can combine if: different origin, both broadcast, both need forwarding
-                if buf_pkt.origTxNodeId != packet.origTxNodeId and buf_pkt.seq != packet.seq:
+                # Can combine if: different origin, both broadcast, both need forwarding,
+                # and combined payload stays within reliable size limit
+                if (buf_pkt.origTxNodeId != packet.origTxNodeId
+                        and buf_pkt.seq != packet.seq
+                        and max(buf_pkt.packetLen, packet.packetLen) <= MAX_XOR_PAYLOAD):
                     coding_partner = i
                     break
 
@@ -901,23 +937,26 @@ class MeshNode:
     def v6_adapt_to_scenario(self):
         """Auto-detect network scenario and adapt parameters.
 
-        ONLY adapts if no GA genome was provided (V6_PARAMS empty).
-        If GA params are set, they take precedence — the GA already
-        optimized for multi-scenario robustness.
+        GA params take precedence for standard/dense/congested scenarios.
+        But SPARSE override is always applied — the GA was optimized on
+        mixed scenarios and its suppression params kill reach in <10 node
+        networks. This is the fix for NomDeTom's sparse stress test.
         """
-        # Skip adaptation if GA genome is loaded — GA params take priority
-        if getattr(self.conf, 'V6_PARAMS', {}):
-            return
+        has_ga = bool(getattr(self.conf, 'V6_PARAMS', {}))
+        active_nb = len(self.v6_neighbors)
 
-        if self.env.now - self.v6_last_adaptation < 30000:
+        # Sparse detection runs IMMEDIATELY (no 30s cooldown) because
+        # the first packets are critical for route learning. If GA params
+        # suppress them, V6 never learns routes and reach collapses.
+        is_sparse = (active_nb <= 8)
+
+        if not is_sparse and self.env.now - self.v6_last_adaptation < 30000:
             return
         self.v6_last_adaptation = self.env.now
 
-        active_nb = len(self.v6_neighbors)
         chan_util = self.channel_utilization_percent()
 
-        # Detect scenario
-        if active_nb <= 4:
+        if is_sparse:
             scenario = 'sparse'
         elif chan_util > 25 or active_nb > 20:
             scenario = 'congested'
@@ -932,17 +971,22 @@ class MeshNode:
         self.v6_detected_scenario = scenario
         logger.debug(f"{self.env.now:.3f} Node {self.nodeid} V6-ADAPT: scenario={scenario} (nb={active_nb}, util={chan_util:.1f}%)")
 
-        # GA-optimized profiles per scenario
+        # Sparse override ALWAYS applies — even with GA params.
+        # GA was optimized on mixed scenarios and never saw pure sparse.
         if scenario == 'sparse':
-            # Maximize reach: high gossip, low suppression, conservative power
-            self.v6_cfg['gossip_probability'] = 0.4
-            self.v6_cfg['relay_redundancy_threshold'] = 5
-            self.v6_cfg['echo_min_score'] = 0.1  # rarely suppress via echo
-            self.v6_cfg['density_threshold'] = 10  # never trigger density suppression
-            self.v6_cfg['power_control_margin'] = 5  # less margin = more reach
-            self.v6_cfg['route_expiry_ms'] = 120000  # longer routes in sparse
-        elif scenario == 'congested':
-            # Minimize TX: strict MPR, low gossip, aggressive suppression
+            self.v6_cfg['gossip_probability'] = 0.5
+            self.v6_cfg['relay_redundancy_threshold'] = 8  # effectively disable redundancy suppression
+            self.v6_cfg['echo_min_score'] = 0.05  # almost never suppress via echo
+            self.v6_cfg['density_threshold'] = 15  # never trigger density suppression
+            self.v6_cfg['power_control_margin'] = 3  # minimal margin = max reach
+            self.v6_cfg['route_expiry_ms'] = 180000  # 3min — routes last longer in sparse
+            return
+
+        # For non-sparse: skip if GA params are loaded (GA optimized these)
+        if has_ga:
+            return
+
+        if scenario == 'congested':
             self.v6_cfg['gossip_probability'] = 0.05
             self.v6_cfg['relay_redundancy_threshold'] = 2
             self.v6_cfg['echo_min_score'] = 0.4
@@ -950,7 +994,6 @@ class MeshNode:
             self.v6_cfg['power_control_margin'] = 15
             self.v6_cfg['route_expiry_ms'] = 30000
         elif scenario == 'dense':
-            # Balance: moderate gossip, container aggregation active
             self.v6_cfg['gossip_probability'] = 0.15
             self.v6_cfg['relay_redundancy_threshold'] = 3
             self.v6_cfg['echo_min_score'] = 0.3
@@ -958,7 +1001,6 @@ class MeshNode:
             self.v6_cfg['power_control_margin'] = 10
             self.v6_cfg['route_expiry_ms'] = 60000
         else:  # standard
-            # Default GA v1 optimal
             self.v6_cfg['gossip_probability'] = 0.26
             self.v6_cfg['relay_redundancy_threshold'] = 4
             self.v6_cfg['echo_min_score'] = 0.48
@@ -1097,9 +1139,14 @@ class MeshNode:
                 return False
 
         # --- SPARSE NETWORK SAFETY ---
+        # At 10 nodes, typical neighbor count is 3-8. Suppression must be
+        # disabled for these small networks or reach drops catastrophically.
+        # Threshold raised from 5 to 8 based on stress test results.
         active_neighbors = len(self.v6_neighbors)
-        if active_neighbors <= 5:
-            return times <= 2 if active_neighbors <= 2 else times <= 1
+        if active_neighbors <= 3:
+            return True  # ultra-sparse: always forward
+        if active_neighbors <= 8:
+            return times <= 2  # sparse: forward up to 2nd reception
 
         # --- MPR: only rebroadcast if I'm an MPR for the sending node ---
         if self.v6_am_mpr_for:  # MPR info available
